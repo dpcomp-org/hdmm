@@ -22,6 +22,11 @@ class Workload:
         return W^T W as a n x n numpy array
         Note: use this for large workloads (m >> n)
         """
+        self.WtW = self._WtW()
+        return self.WtW
+#        return self.W.T.dot(self.W)
+
+    def _WtW(self):
         return self.W.T.dot(self.W)
 
     @property
@@ -65,11 +70,33 @@ class Workload:
         return np.sqrt(self.expected_error(strategy, eps) / self.queries)
 
     def __rmul__(self, const):
-        return Matrix(const * self.W)
+        return Multiply(self, const)
+#        return Matrix(const * self.W)
 #        return MatrixNormal(const**2 * self.WtW, self.queries)
 
     def __add__(self, other):
         return Concat([self, other])
+
+class Multiply(Workload):
+    def __init__(self, base, const):
+        self.base = base
+        self.const = const
+
+    @property
+    def W(self):
+        return self.const * self.base.W
+    
+    @property
+    def WtW(self):
+        return self.const**2 * self.base.WtW
+
+    @property
+    def domain(self):
+        return self.base.domain
+
+    @property
+    def queries(self):
+        return self.base.queries
 
 class Permuted(Workload):
     def __init__(self, base, seed=0):
@@ -144,14 +171,18 @@ class AllRange(Workload):
                 r += 1
         return Q
 
-    @property
-    def WtW(self):
-        n = self.domain
-        QtQ = np.zeros((n,n))
-        for i in range(n):
-            for j in range(i, n):
-                QtQ[i,j] = QtQ[j,i] = (i+1) * (n-j)
-        return QtQ
+    def _WtW(self):
+        r = np.arange(self.domain)+1
+        X = np.outer(r, r[::-1])
+        return np.minimum(X, X.T)
+
+#    def _WtW(self):
+#        n = self.domain
+#        QtQ = np.zeros((n,n))
+#        for i in range(n):
+#            for j in range(i, n):
+#                QtQ[i,j] = QtQ[j,i] = (i+1) * (n-j)
+#        return QtQ
 
 class WidthKRange(Workload):
     def __init__(self, domain, widths):
@@ -212,8 +243,7 @@ class Concat(Workload):
     def W(self):
         return np.vstack([w.W for w in self.workloads])
        
-    @property 
-    def WtW(self):
+    def _WtW(self):
         return sum(w.WtW for w in self.workloads)
 
     def squared_error(self, noise):
@@ -250,8 +280,7 @@ class Kron(Workload):
         """ Do not call this if domain is large """
         return reduce(np.kron, [w.W for w in self.workloads])
 
-    @property
-    def WtW(self):
+    def _WtW(self):
         return reduce(np.kron, [w.WtW for w in self.workloads])
 
     def squared_error(self, noise):
@@ -350,6 +379,10 @@ class Marginals(Concat):
             key = tuple([int(bool(2**k & i)) for k in range(d)])
             vect[i] = self.weights[key]
         return vect 
+
+    def __rmul__(self, const):
+        weights = { k : v*const for k, v in self.weights.items() }
+        return Marginals(self.domain, weights)
 
     def expected_error(self, theta, eps=np.sqrt(2)):
         dom = self.domain

@@ -30,7 +30,6 @@ def inverse(B):
         return U
     return LinearOperator(shape=(n, m+n), matvec=matvec, rmatvec=None, matmat=matmat, dtype=dtype)
 
-
 def krons(*mats):
     dtype = mats[0].dtype
     mats = [aslinearoperator(A) for A in mats]

@@ -1,8 +1,10 @@
 import numpy as np
-from scipy import sparse optimize
-from scipy.sparse.linalg import spsolve_triangular
+from scipy import sparse, optimize
+from scipy.sparse.linalg import spsolve_triangular, aslinearoperator
 import workload
 import time
+import approximation
+import implicit
 
 class TemplateStrategy:
     """
@@ -20,19 +22,40 @@ class TemplateStrategy:
 
     @property
     def A(self):
-        pass
+        return self.get_strategy(form='matrix')
     
     def _AtA1(self):
         return np.linalg.pinv(self.A.T.dot(self.A))
 
-    def inverse(self):
-        return np.linalg.pinv(self.A)
+    def strategy(self, form='linop'):
+        """ Return a linear operator for the strategy """
+        assert form in ['matrix', 'linop']
+        A = self._strategy()
+        if form == 'matrix':
+            I = np.eye(A.shape[1])
+            return A.dot(I)
+        return A
 
-    def loss_and_grad(self, WtW):
+    def inverse(self, form='linop'):
+        """ Return a linear operator for the pseudo inverse of the strategy """
+        assert form in ['matrix', 'linop']
+        A1 = self._inverse()
+        if form == 'matrix':
+            I = np.eye(A1.shape[1])
+            return A1.dot(I)
+        return A1
+
+    def _inverse(self):
+        return aslinearoperator(np.linalg.pinv(self.A))
+
+    def _loss_and_grad(self):
         pass
 
     def sensitivity(self):
         return np.abs(self.A).sum(axis=0).max()
+
+    def set_workload(self, W):
+        self.workload = W
 
     def optimize(self, W):
         """
@@ -40,16 +63,13 @@ class TemplateStrategy:
 
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
-        if isinstance(W, workload.Workload):
-            WtW = W.WtW
-        else:
-            WtW = W
+        self.set_workload(W)
         init = self.get_params()
         bnds = [(0,None)] * init.size
         
         def obj(theta):
             self.set_params(theta)
-            return self.loss_and_grad(WtW)
+            return self._loss_and_grad()
 
         res = optimize.minimize(obj, init, jac=True, method='L-BFGS-B', bounds=bnds)
         return res
@@ -69,12 +89,12 @@ class Default(TemplateStrategy):
         self.n = n
         TemplateStrategy.__init__(theta0) 
 
-    @property
-    def A(self):
+    def _strategy(self):
         B = self.get_params().reshape(self.m, self.n)
         return B / B.sum(axis=0)
 
-    def loss_and_grad(self, WtW):
+    def _loss_and_grad(self):
+        WtW = self.workload.WtW
         B = self.get_params().reshape(self.m, self.n)
         scale = B.sum(axis=0)
         A = B / scale
@@ -103,11 +123,12 @@ class PIdentity(TemplateStrategy):
         TemplateStrategy.__init__(self, theta0)
     
     @property
-    def A(self):
+    def _strategy(self):
         I = np.eye(self.n)
         B = self.get_params().reshape(self.p, self.n)
         A = np.vstack([I, B])
-        return A / A.sum(axis=0)
+        A = A / A.sum(axis=0)
+        return aslinearoperator(sparse.csr_matrix(A))
 
     def _AtA1(self):
         B = self.get_params().reshape(self.p, self.n)
@@ -115,10 +136,12 @@ class PIdentity(TemplateStrategy):
         D = 1.0 + B.sum(axis=0)
         return (np.eye(self.n) - B.T.dot(R).dot(B))*D*D[:,None]
 
-    def inverse(self):
-        return self._AtA1().dot(self.A.T)
+    def _inverse(self):
+        B = self.get_params().reshape(self.p, self.n)
+        return implicit.inverse(B)
         
-    def loss_and_grad(self, WtW):
+    def _loss_and_grad(self):
+        WtW = self.workload.WtW
         p, n = self.p, self.n
 
         B = np.reshape(self.get_params(), (p,n))
@@ -165,14 +188,14 @@ class AugmentedIdentity(TemplateStrategy):
         num = imatrix.max()
         theta0 = np.random.rand(num)
         self._pid = PIdentity(p, n)
-        TemplateStrategy.__init__(self, p+n, n, theta0) 
+        TemplateStrategy.__init__(self, p+n, n, theta0)
+        # should call set_params
      
-    @property 
-    def A(self):
-        params = np.append(0, self.get_params())
-        B = params[self.imatrix]
-        self._pid.set_params(B.flatten())
-        return self._pid.A
+    def _strategy(self):
+        return self._pid._strategy()   
+ 
+    def _inverse(self):
+        return self._pid.inverse()
 
     def set_params(theta):
         self.theta = theta
@@ -183,14 +206,15 @@ class AugmentedIdentity(TemplateStrategy):
     def _AtA1(self):
         return self._pid._AtA1()
 
-    def inverse(self):
-        return self._pid.inverse()
+    def set_workload(self, W):
+        self.workload = W
+        self._pid.set_workload(W)
  
-    def loss_and_grad(self, WtW):
+    def _loss_and_grad(self):
         #params = np.append(0, self.get_params())
         #B = params[self.imatrix]
         #self._pid.set_params(B.flatten())
-        obj, grad = self._pid.loss_and_grad(WtW) 
+        obj, grad = self._pid._loss_and_grad() 
         grad2 = np.bincount(self.imatrix.flatten(), grad)[1:]
         return obj, grad2
 
@@ -203,7 +227,17 @@ class Kronecker(TemplateStrategy):
         """
         self.strategies = strategies
 
+    def _strategy(self):
+        return implicit.krons(*[S._strategy() for S in self.strategies])
+
+    def _inverse(self):
+        return implicit.krons(*[S._inverse() for S in self.strategies])
+
+    def sensitivity(self):
+        return np.prod([S.sensitivity() for S in self.strategies])
+
     def optimize(self, W):
+        self.set_workload(W)
         t0 = time.time()
         if isinstance(W, workload.Kron):
             for subA, subW in zip(self.strategies, W.workloads):
@@ -211,9 +245,7 @@ class Kronecker(TemplateStrategy):
             return { 'time' : time.time() - t0 }
         assert isinstance(W, workload.Concat) and isinstance(W.workloads[0], workload.Kron)
       
-        # TODO: use workload object instead of WtW so marginals template can be used
-        # on subworkloads 
-        workloads = [[S.WtW for S in K.workloads] for K in W.workloads]
+        workloads = [K.workloads for K in W.workloads] # a k x d table of workloads
         strategies = self.strategies
  
         k = len(workloads)
@@ -225,16 +257,16 @@ class Kronecker(TemplateStrategy):
         for i in range(d):
             AtA1 = strategies[i]._AtA1()
             for j in range(k):
-                C[i,j] = np.sum(workloads[j][i] * AtA1)
+                C[i,j] = np.sum(workloads[j][i].WtW * AtA1)
         for r in range(10):
             err = C.prod(axis=0).sum()
             for i in range(d):
-                cs = C.prod(axis=0) / C[i]
-                WtW = sum(c*WtWs[i] for c, WtWs in zip(cs, workloads))
-                res = strategies[i].optimize(WtW)
+                cs = np.sqrt(C.prod(axis=0) / C[i])
+                What = workload.Concat([c*Ws[i] for c, Ws in zip(cs, workloads)])
+                res = strategies[i].optimize(What)
                 AtA1 = strategies[i]._AtA1()
                 for j in range(k):
-                    C[i,j] = np.sum(workloads[j][i] * AtA1)
+                    C[i,j] = np.sum(workloads[j][i].WtW * AtA1)
             log.append(err)
 
         t1 = time.time()
@@ -242,6 +274,11 @@ class Kronecker(TemplateStrategy):
         return ans
 
 class Marginals(TemplateStrategy):
+    """
+    A marginals template is parameterized by 2^d weights where d is the number of dimensions.  
+    The strategy is of the form w_1 (T x ... x T) + ... + w_{2^d} (I x ... I)  - every marginal
+    with nonzero weight is queried with weight w_i
+    """
     def __init__(self, domain):
         self.domain = domain
         theta = np.random.rand(2**len(domain))
@@ -251,12 +288,27 @@ class Marginals(TemplateStrategy):
         for i in range(2**d):
             for k in range(d):
                 if not (i & (2**k)):
-                    mult[i] *= dom[k]
+                    mult[i] *= domain[k]
         self.mult = mult
 
         TemplateStrategy.__init__(self, theta)
 
+    def _strategy(self):
+        return implicit.marginals_linop(self.domain, self.get_params())
+
+    def _inverse(self):
+        theta = self.get_params()
+        Y, _ = self._Xmatrix(theta**2)
+        tmp = Y.dot(theta**2)
+        X, _ = Xmatrix(tmp)
+        invtheta = spsolve_triangular(X, theta**2, lower=False)
+        return implicit.marginals_inverse(self.domain, theta, invtheta)
+
+    def sensitivity(self):
+        return np.sum(np.abs(self.get_params()))
+
     def _Xmatrix(self,vect):
+        # the matrix X such that M(u) M(v) = M(X(u) v)
         d = len(self.domain)
         A = np.arange(2**d)
         mult = self.mult
@@ -281,31 +333,32 @@ class Marginals(TemplateStrategy):
             start += step
         X = sparse.csr_matrix((values, (rows, cols)), (2**d, 2**d))
         XT = sparse.csr_matrix((values, (cols, rows)), (2**d, 2**d))
-        # Note: If X is not full rank, need to modify it so that solve_triangular works
-        # This doesn't impact the gradient calculations though
-        # a finite difference sanity check might suggest otherwise, 
-        # but a valid subgradient at theta_k = 0 is 0 due to symmetry
-        #D = sparse.diags((X.diagonal()==0).astype(np.float64), format='csr')
         return X, XT
 
-    def loss_and_grad(self):
+    def set_workload(self, W):
+        self.workload = W
+        marg = approximation.marginals_approx(W)
+        d = len(self.domain)
+        A = np.arange(2**d)
+        weights = marg.weight_vector()
+        self.dphi = np.array([np.dot(weights**2, self.mult[A|b]) for b in range(2**d)]) 
+
+    def _loss_and_grad(self):
         d = len(self.domain)
         A = np.arange(2**d)
         mult = self.mult
-        dphi = self.dphi # TODO: needs to be set
+        dphi = self.dphi
         theta = self.get_params()
 
         delta = np.sum(theta)**2
         ddelta = 2*np.sum(theta)
         theta2 = theta**2
-        Y, YT = Xmatrix(theta2)
+        Y, YT = self._Xmatrix(theta2)
         params = Y.dot(theta2)
-        X, XT = Xmatrix(params)
+        X, XT = self._Xmatrix(params)
         phi = spsolve_triangular(X, theta2, lower=False)
         # Note: we should be multiplying by domain size here if we want total squared error
         ans = np.dot(phi, dphi)
-#        ans = np.sum([phi[b]*np.dot(mult[A|b],weights**2) for b in range(2**d)])
-#        dphi = np.array([np.dot(weights**2, mult[A|b]) for b in range(2**d)])
         dXvect = -spsolve_triangular(XT, dphi, lower=True)
         # dX = outer(dXvect, phi)
         dparams = np.array([np.dot(dXvect[A&b]*phi, mult[A|b]) for b in range(2**d)])
@@ -316,6 +369,11 @@ class Marginals(TemplateStrategy):
 # (df / dtheta_k) = sum_ij (df / d_Aij) (dA_ij / theta_k)
   
 def KronPIdentity(ns, ps):
+    """
+    Builds a template strategy of the form A1 x ... x Ad where each Ai is a PIdentity template
+    :param ns: the domain size of each dimension
+    :param ps: the number of p queries in each dimension
+    """
     return Kronecker([PIdentity(p, n) for p,n in zip(ps, ns)])
  
 def RangeTemplate(n, start=32, branch=4, shared=False):
@@ -348,10 +406,3 @@ def RangeTemplate(n, start=32, branch=4, shared=False):
         if shared: idx += width
         width *= branch
     return AugmentedIdentity(np.vstack(rows))
-
-if __name__ == '__main__':
-    S = PIdentity(4, 16)
-    W = np.random.rand(16,16)
-    WtW = W.T.dot(W)
-    obj, grad = S.loss_and_grad(WtW)
-    print grad.shape
