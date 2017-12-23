@@ -45,7 +45,6 @@ def loss_and_grad(P, WtW, y):
     
     return ans, (np.vstack([u0, U]), np.vstack([v0, V/scale]))
 
-
 def stochastic_p_identity(W, p):
     WtW = W.WtW
     n = WtW.shape[0]
@@ -86,7 +85,46 @@ def stochastic_p_identity(W, p):
         B[B < 0] = 0
     A = np.vstack([I, B])
     return A / A.sum(axis=0)
- 
+
+def stochastic_marginal(W):
+    WtW = W.WtW
+    n = WtW.shape[0]
+    I = np.eye(n)
+    T = np.ones(n)
+
+    a = 0.02
+    b1, b2 = 0.9, 0.999
+    eps = 1e-8
+    
+    theta = np.ones(n)
+    m = np.zeros_like(theta)
+    v = np.zeros_like(theta)
+
+    for t in range(1, 1000):
+        A = np.vstack([theta*T, I])
+
+        obj = 0
+        grad = 0.0
+        rep = 5
+        for k in range(rep):
+            y = np.random.laplace(loc=0, scale=1.0/np.sqrt(2), size=1+n)
+            f, (U,V) = loss_and_grad(A, WtW, y)
+            grad += U[:,0].dot(V) / rep
+            obj += f / rep
+
+        err = W.expected_error(A)
+        print obj, err, obj/err
+#        print np.diag(strategy)
+    
+#        grad = U.T[n:].dot(V)
+        m = b1 * m + (1-b1) * grad
+        v = b2 * v + (1 - b2) * grad**2
+        mhat = m / (1 - b1**t)
+        vhat = v / (1 - b2**t)
+        theta = theta - a * mhat / (np.sqrt(vhat) + eps)
+        theta = np.maximum(theta, 0.0)
+    return A
+
 
 if __name__ == '__main__':
     P = np.vstack([np.eye(16), np.random.rand(2, 16)])
@@ -106,7 +144,6 @@ if __name__ == '__main__':
         obj1, _ = loss_and_grad(P, WtW, y)
         P[i,i] -= eps
         approx[i] = (obj1 - obj) / eps
-
     print approx
  
 
