@@ -22,7 +22,7 @@ class TemplateStrategy:
 
     @property
     def A(self):
-        return self.get_strategy(form='matrix')
+        return self.strategy(form='matrix')
     
     def _AtA1(self):
         return np.linalg.pinv(self.A.T.dot(self.A))
@@ -35,6 +35,9 @@ class TemplateStrategy:
             I = np.eye(A.shape[1])
             return A.dot(I)
         return A
+
+    def _strategy(self):
+        return aslinearoperator(self.A)
 
     def inverse(self, form='linop'):
         """ Return a linear operator for the pseudo inverse of the strategy """
@@ -63,6 +66,7 @@ class TemplateStrategy:
 
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
+        t0 = time.time()
         self.set_workload(W)
         init = self.get_params()
         bnds = [(0,None)] * init.size
@@ -72,10 +76,12 @@ class TemplateStrategy:
             return self._loss_and_grad()
 
         res = optimize.minimize(obj, init, jac=True, method='L-BFGS-B', bounds=bnds)
-        return res
+        t1 = time.time()
+        ans = { 'time' : t1 - t0, 'loss' : res.fun, 'res' : res }
+        return ans
 
-    def restart_optimize(self, workload):
-        pass
+    def restart_optimize(self, W, restarts):
+        pass 
 
 class Default(TemplateStrategy):
     """
@@ -122,7 +128,6 @@ class PIdentity(TemplateStrategy):
         self.n = n
         TemplateStrategy.__init__(self, theta0)
     
-    @property
     def _strategy(self):
         I = np.eye(self.n)
         B = self.get_params().reshape(self.p, self.n)
@@ -218,6 +223,14 @@ class AugmentedIdentity(TemplateStrategy):
         grad2 = np.bincount(self.imatrix.flatten(), grad)[1:]
         return obj, grad2
 
+class Static(TemplateStrategy):
+    def __init__(self, strategy):
+        self.A = strategy
+        TemplateStrategy.__init__(self, np.array([]))
+
+    def optimize(self, W):
+        pass
+
 class Kronecker(TemplateStrategy):
     """ A Kronecker template strategy is of the form A1 x ... x Ad, where each Ai is some 1D 
         template strategy"""
@@ -240,9 +253,11 @@ class Kronecker(TemplateStrategy):
         self.set_workload(W)
         t0 = time.time()
         if isinstance(W, workload.Kron):
+            loss = 0
             for subA, subW in zip(self.strategies, W.workloads):
-                subA.optimize(subW)
-            return { 'time' : time.time() - t0 }
+                ans = subA.optimize(subW)
+                loss += ans['loss']
+            return { 'time' : time.time() - t0, 'loss' : loss }
         assert isinstance(W, workload.Concat) and isinstance(W.workloads[0], workload.Kron)
       
         workloads = [K.workloads for K in W.workloads] # a k x d table of workloads
@@ -270,7 +285,7 @@ class Kronecker(TemplateStrategy):
             log.append(err)
 
         t1 = time.time()
-        ans = { 'log' : log, 'error' : err, 'time' : t1 - t0 }
+        ans = { 'log' : log, 'loss' : err, 'time' : t1 - t0 }
         return ans
 
 class Marginals(TemplateStrategy):
@@ -388,7 +403,7 @@ def RangeTemplate(n, start=32, branch=4, shared=False):
     :param shared: flag to determine if parameters should be shared for queries of the same width
 
     Example:
-    RangeTemplate(16, start=8, branch=2) builds a strategy template with four augmented queries that have structural zeros everywhere except in the interval indicated below:
+    RangeTemplate(16, start=8, branch=2) builds a strategy template with four augmented queries that have structural zeros everywhere except in the intervals indicated below:
     1. [0,8)
     2. [4,12)
     3. [8,16)
@@ -406,3 +421,17 @@ def RangeTemplate(n, start=32, branch=4, shared=False):
         if shared: idx += width
         width *= branch
     return AugmentedIdentity(np.vstack(rows))
+
+def IdTotal(n):
+    """ Build a single-parameter template strategy of the form w*Total + Identity """
+    P = np.ones((1,n), dtype=int)
+    return AugmentedIdentity(P)
+
+def Identity(n):
+    """ Builds a template strategy that is always Identity """
+    return Static(np.eye(n))
+
+def Total(n):
+    """ Builds a template strategy that is always Total """
+    return Static(np.ones((1,n)))
+
