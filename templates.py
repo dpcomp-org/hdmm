@@ -86,6 +86,7 @@ class TemplateStrategy:
             ans = self.optimize(W)
             if ans['loss'] < best['loss']:
                 best = ans
+        self.set_params(best['res'].x)
         return best 
 
 class Default(TemplateStrategy):
