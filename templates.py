@@ -81,7 +81,12 @@ class TemplateStrategy:
         return ans
 
     def restart_optimize(self, W, restarts):
-        pass 
+        best = self.optimize(W)
+        for i in range(restarts-1):
+            ans = self.optimize(W)
+            if ans['loss'] < best['loss']:
+                best = ans
+        return best 
 
 class Default(TemplateStrategy):
     """
