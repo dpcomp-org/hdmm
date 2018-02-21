@@ -77,7 +77,8 @@ class TemplateStrategy:
 
         res = optimize.minimize(obj, init, jac=True, method='L-BFGS-B', bounds=bnds)
         t1 = time.time()
-        ans = { 'time' : t1 - t0, 'loss' : res.fun, 'res' : res }
+        params = self.get_params()
+        ans = { 'time' : t1 - t0, 'loss' : res.fun, 'res' : res, 'params' : params }
         return ans
 
     def restart_optimize(self, W, restarts):
@@ -86,7 +87,7 @@ class TemplateStrategy:
             ans = self.optimize(W)
             if ans['loss'] < best['loss']:
                 best = ans
-        self.set_params(best['res'].x)
+        self.set_params(best['params'])
         return best 
 
 class Default(TemplateStrategy):
@@ -246,6 +247,13 @@ class Kronecker(TemplateStrategy):
         """
         self.strategies = strategies
 
+    def set_params(self, params):
+        for strategy, param in zip(self.strategies, params):
+            strategy.set_params(param)
+
+    def get_params(self):
+        return [strategy.get_params() for strategy in self.strategies]
+
     def _strategy(self):
         return implicit.krons(*[S._strategy() for S in self.strategies])
 
@@ -263,7 +271,8 @@ class Kronecker(TemplateStrategy):
             for subA, subW in zip(self.strategies, W.workloads):
                 ans = subA.optimize(subW)
                 loss += ans['loss']
-            return { 'time' : time.time() - t0, 'loss' : loss }
+            params = self.get_params()
+            return { 'time' : time.time() - t0, 'loss' : loss, 'params' : params }
         assert isinstance(W, workload.Concat) and isinstance(W.workloads[0], workload.Kron)
       
         workloads = [K.workloads for K in W.workloads] # a k x d table of workloads
@@ -291,7 +300,8 @@ class Kronecker(TemplateStrategy):
             log.append(err)
 
         t1 = time.time()
-        ans = { 'log' : log, 'loss' : err, 'time' : t1 - t0 }
+        params = self.get_params()
+        ans = { 'log' : log, 'loss' : err, 'time' : t1 - t0, 'params' : params }
         return ans
 
 class Marginals(TemplateStrategy):
@@ -357,8 +367,8 @@ class Marginals(TemplateStrategy):
         return X, XT
 
     def set_workload(self, W):
-        self.workload = W
         marg = approximation.marginals_approx(W)
+        self.workload = marg
         d = len(self.domain)
         A = np.arange(2**d)
         weights = marg.weight_vector()

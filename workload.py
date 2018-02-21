@@ -44,7 +44,7 @@ class Workload:
         Given a noise vector (x - xhat), compute the squared error on the workload
         """
         return noise.dot(self.WtW.dot(noise))
-       
+
     def expected_error(self, strategy, eps=np.sqrt(2)):
         """
         Given a strategy and a privacy budget, compute the expected squared error

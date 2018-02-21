@@ -11,4 +11,4 @@ def discretize(strategy, digits=2):
     if type(strategy) is np.ndarray:
         return np.round(strategy*10**digits).astype(int)
     elif type(strategy) is list:
-        return [discretize(S) for S in strategy]
+        return [discretize(S, digits) for S in strategy]
