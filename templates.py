@@ -20,6 +20,14 @@ class TemplateStrategy:
     def set_params(self, theta):
         self.theta = np.maximum(theta, 0)
 
+    def run_mechanism(self, x, eps):
+        """ Run the matrix mechanism with the current strategy on the given data vector """
+        A = self.strategy()
+        A1 = self.inverse()
+        delta = self.sensitivity()
+        y = A.dot(x) + np.random.laplace(0, delta/eps, size=A.shape[0])
+        return A1.dot(y)
+
     @property
     def A(self):
         return self.strategy(form='matrix')
@@ -331,7 +339,7 @@ class Marginals(TemplateStrategy):
         theta = self.get_params()
         Y, _ = self._Xmatrix(theta**2)
         tmp = Y.dot(theta**2)
-        X, _ = Xmatrix(tmp)
+        X, _ = self._Xmatrix(tmp)
         invtheta = spsolve_triangular(X, theta**2, lower=False)
         return implicit.marginals_inverse(self.domain, theta, invtheta)
 
