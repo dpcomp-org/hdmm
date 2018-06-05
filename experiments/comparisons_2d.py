@@ -3,7 +3,8 @@ import utility
 import workload
 from dpcomp_core.algorithm import HB2D, privelet2D, QuadTree, identity
 from IPython import embed
-import optimize
+#import optimize
+#import templates
 import pickle
 import implicit
 

@@ -1,0 +1,5 @@
+\section{Introduction}
+
+Many differential privacy algorithms make heavy use of the data vector representation of the database.  This object has one cell for each possible tuple in the domain, and counts the number of occurrences of that tuple in the database.  A linear query is just some linear transformation of this data vector.  Answering linear queries is a common task considered in the privacy literature, in part because tight bounds on the sensitivity of a collection of linear queries are readily available and easily computable from the query matrix.  
+
+For theoretical reasons it is often convenient to think of a query as a vector $q$ and a collection of queries as a matrix $Q$ with one query per row.  It is common for algorithms to use this represenation in practice as well, in part because this representation is useful for computing sensitivity and performing inference, which are essential components of many privacy algorithms.  It is also common for algorithms to \emph{avoid this representation}, because it is too computationally expensive for large domain sizes.  These algorithms have to find other ways to compute sensitivity and perform inference.

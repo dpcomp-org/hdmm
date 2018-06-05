@@ -39,6 +39,9 @@ class Workload:
         """ The number of queries in the workload """
         return self.W.shape[0]
 
+    def evaluate(self, x):
+        return self.W.dot(x)
+
     def squared_error(self, noise):
         """ 
         Given a noise vector (x - xhat), compute the squared error on the workload
@@ -246,6 +249,9 @@ class Concat(Workload):
     def _WtW(self):
         return sum(w.WtW for w in self.workloads)
 
+    def evaluate(self, x):
+        return np.concatenate([Q.evaluate(x) for Q in self.workloads])
+
     def squared_error(self, noise):
         return sum(W.squared_error(noise) for W in self.workloads)
 
@@ -282,6 +288,10 @@ class Kron(Workload):
 
     def _WtW(self):
         return reduce(np.kron, [w.WtW for w in self.workloads])
+
+    def evaluate(self, x):
+        W = implicit.krons(*[w.W for w in self.workloads])
+        return W.dot(x)
 
     def squared_error(self, noise):
         WtW = implicit.krons(*[w.WtW for w in self.workloads])

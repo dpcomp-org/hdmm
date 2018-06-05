@@ -1,11 +1,13 @@
 import numpy as np
 import pickle
 from workload import *
-from scalability_running import krons
+#from scalability_running import krons
 import utility
 from IPython import embed
-import optimize
+#import optimize
 import pandas as pd
+import templates
+
 
 results = pd.DataFrame(columns=['dataset', 'workload', 'epsilon', 'Identity', 'Privbayes', 'PMM'])
 
@@ -33,7 +35,12 @@ for eps in [0.1, 1.0]:
     q = W.queries
     ps = [4,8,1,1,1]
     restarts = 50
-    As = optimize.restart_kron(W, restarts, ps)
+
+    T = templates.KronPIdentity(W.domain, ps)
+    T.restart_optimize(W, restarts)
+    As = [S.A for S in T.strategies]
+
+    #As = optimize.restart_kron(W, restarts, ps)
     I = [np.eye(n) for n in W.domain]
 
     eye = W.expected_error(I, eps=eps)
@@ -62,7 +69,11 @@ for eps in [0.1, 1.0]:
 
     ps = [4,8,1,1,1]
     restarts = 25
-    As = optimize.restart_union_kron(W, restarts, ps)
+    
+    T = templates.KronPIdentity(W.domain, ps)
+    T.restart_optimize(W, restarts)
+    As = [S.A for S in T.strategies]
+
     eye = W.expected_error(I, eps=eps)
     opt = W.expected_error(As, eps=eps)
     low, high = W.average_error_ci(diffs)
@@ -79,16 +90,27 @@ for eps in [0.1, 1.0]:
     for est in Xs:
         diffs.append((X - est).flatten()) 
     
-    W = Kron([AllRange(75), Prefix(16), Marginal(5), Marginal(2), Prefix(20)])
+    #W = Kron([AllRange(75), Prefix(16), Marginal(5), Marginal(2), Prefix(20)])
+    W = Kron([Marginal(75), Marginal(16), Marginal(5), Marginal(2), Marginal(20)])
     q = W.queries   
  
-    ps = [6, 3, 1, 1, 3]
+    #ps = [6, 3, 1, 1, 3]
+    ps = [1,1,1,1,1]
     restarts = 50
-    As = optimize.restart_kron(W, restarts, ps)
+
+    T = templates.KronPIdentity(W.domain, ps)
+    T.restart_optimize(W, restarts)
+    As = [S.A for S in T.strategies]
+
+    T2 = templates.Marginals(W.domain)
+    optm = T2.optimize(Concat([W]))['loss'] * np.prod(W.domain)
+
+    #As = optimize.restart_kron(W, restarts, ps)
     I = [np.eye(n) for n in W.domain]
 
     eye = W.expected_error(I, eps=eps)
     opt = W.expected_error(As, eps=eps)
+    opt = min(opt, optm)
     low, high = W.average_error_ci(diffs)
     unif = W.squared_error(X.flatten() - X.sum() / np.prod(X.shape))
 
@@ -98,7 +120,8 @@ for eps in [0.1, 1.0]:
     ## Experiment 4 ##
     ##################
 
-    blocks = [AllRange(75), Prefix(16), Identity(5), Identity(2), Prefix(20)]
+    #blocks = [AllRange(75), Prefix(16), Identity(5), Identity(2), Prefix(20)]
+    blocks = [Identity(75), Identity(16), Identity(5), Identity(2), Identity(20)]
     base = [Total(n) for n in W.domain]
     Ws = []
     for i in range(5):
@@ -110,11 +133,21 @@ for eps in [0.1, 1.0]:
     W = Concat(Ws)
     q = W.queries   
  
-    ps = [6,3,1,1,3]
+    #ps = [6,3,1,1,3]
+    ps = [1,1,1,1,1]
     restarts = 25
-    As = optimize.restart_union_kron(W, restarts, ps)
+
+    T = templates.KronPIdentity(W.domain, ps)
+    T.restart_optimize(W, restarts)
+    As = [S.A for S in T.strategies]
+
+    T2 = templates.Marginals(W.domain)
+    optm = T2.optimize(W)['loss'] * np.prod(W.domain)
+
+#    As = optimize.restart_union_kron(W, restarts, ps)
     eye = W.expected_error(I, eps=eps)
     opt = W.expected_error(As, eps=eps)
+    opt = min(opt, optm)
     low, high = W.average_error_ci(diffs)
     unif = W.squared_error(X.flatten() - X.sum() / np.prod(X.shape))
 

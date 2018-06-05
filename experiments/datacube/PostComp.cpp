@@ -53,17 +53,17 @@ const int _1 = 1;
 #define PAR_IN 0
 
 //Input files
-char* file_table_dim   = "../table_dim_large.txt";
+char* file_table_dim   = "table_dim_large.txt";
 char* file_opt_select  = "../select_large.txt";
 char* file_opt_select2 = "../select_large2.txt";
 char* file_opt_select3 = "../select_large3.txt";
 
 //Output statistics
-char* file_result      = "../stat_large.txt";
+char* file_result      = "stat_large.txt";
 
 CUBE_STRUCTURE_NODE eps = 1;
 
-char *par = "11111111";
+char *par = "01000000";// "11111111";
 
 int n_dim; // number of dimensions
 int max_dim = MAXD; // max number of dimensions

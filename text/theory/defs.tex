@@ -1,0 +1,356 @@
+%!TEX root = paper.tex
+
+\newtheorem{remark}{Remark}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\newtheorem{problem}{Problem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{example}{Example}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{operator}{Operator}
+\newtheorem{proof}{Proof}
+%\newcommand{\example}[1]{{\bf Example}: {#1}}
+
+
+%
+\def\map{{\mbox{\sf MAP}}}
+\def\plus{{+}}
+\def\opt{{\mbox{\sf OPT}}}
+\def\metaopt{\ensuremath{{\mbox{\sf OPT}_{\sf HDMM}}}}
+\def\WW{\mathbb{W}}
+\def\Wlog{\mathcal{W}}
+\def\AA{\mathbb{A}}
+\def\BB{\mathbb{B}}
+\def\CC{\mathbb{C}}
+\def\MM{\mathbb{M}}
+\def\optgp{\mbox{\sf OPT}_{0}}
+\def\optk{\mbox{\sf OPT}_{\otimes}}
+\def\optkk{\mbox{\sf OPT}_{+}}
+\def\optm{\mbox{\sf OPT}_{\mathsf{M}}}
+
+\def\Imp{\mbox{\sf ImpVec}}
+\def\mult{\mbox{\sf Multiply}}
+\def\invert{\mbox{\sf Invert}}
+
+\newcommand{\revision}[1]{{\color{cyan} #1}}
+
+\newcommand{\tighttimes}{\!\times\!}
+
+%\newcommand{\LMW}{\ensuremath{LM(W)}\xspace}
+%\newcommand{\Identity}{\ensuremath{MM(I)}\xspace}
+\newcommand{\algoname}[1]{{\textsc{#1}}\xspace}
+\newcommand{\sys}{\algoname{HDMM}}
+\newcommand{\sysFull}{High-Dimensional Matrix Mechanism\xspace}
+\newcommand{\LMW}{\algoname{LM}}
+\newcommand{\Identity}{\algoname{Identity}}
+\newcommand{\Workload}{\ensuremath{MM(W)}}
+\newcommand{\PrivBayes}{\algoname{PrivBayes}}
+\newcommand{\matrixMech}{\algoname{MM}}
+\newcommand{\HB}{\algoname{HB}}
+\newcommand{\Privelet}{\algoname{Privelet}}
+\newcommand{\Quadtree}{\algoname{Quadtree}}
+\newcommand{\GreedyH}{\algoname{GreedyH}}
+\newcommand{\DataCube}{\algoname{DataCube}}
+\newcommand{\DAWA}{\algoname{DAWA}}
+\newcommand{\LRM}{\algoname{LRM}}
+
+
+\newcommand{\datasetname}[1]{{\emph{#1}}\xspace}
+\newcommand\Census{\datasetname{CPH}}
+\newcommand\Person{\datasetname{Person}}
+\newcommand\Adult{\datasetname{Adult}}
+\newcommand\CPS{\datasetname{CPS}}
+\newcommand\Patent{\datasetname{Patent}}
+\newcommand\Taxi{\datasetname{Taxi}}
+
+\newcommand{\workloadname}[1]{{\emph{#1}}\xspace}
+\newcommand\FixedWidthRange{\workloadname{Width 32 Range}}
+\newcommand\PrefixOneD{\workloadname{Prefix 1D}}
+\newcommand\PrefixTwoD{\workloadname{Prefix 2D}}
+\newcommand\PrefixThreeD{\workloadname{Prefix 3D}}
+\newcommand\PermutedRange{\workloadname{Permuted Range}}
+\newcommand\PrefixIdentity{\workloadname{Prefix Identity}}
+\newcommand\SFOne{\workloadname{SF1}}
+\newcommand\SFOnePlus{\workloadname{SF1+}}
+\newcommand\AllMarginals{\workloadname{All Marginals}}
+\newcommand\TwoWayMarginals{\workloadname{2-way Marginals}}
+\newcommand\ThreeWayMarginals{\workloadname{3-way Marginals}}
+\newcommand\AllRangeMarginals{\workloadname{All Range-Marginals}}
+\newcommand\TwoWayRangeMarginals{\workloadname{2-way Range-Marginals}}
+\newcommand\ThreeWayRange{\workloadname{All 3-way Ranges}}
+
+
+
+
+
+\newcommand{\errRatio}{\ensuremath{Ratio(W, \mathcal{A}_{other})}\xspace}
+
+\newcommand{\NA}{-}
+\newcommand{\NS}{*}
+
+
+% Name
+
+\newcommand{\op}[1]{{\sc #1}\xspace}
+\newcommand{\stitle}[1]{\vspace{-2.5mm}\paragraph*{#1}}
+\newcommand{\eat}[1]{}
+\newcommand{\eatrev}[1]{}
+%\newcommand{\eat}[1]{ {\color{red}#1} }
+\newcommand{\mybullet}{\vspace{1mm}\noindent$\bullet$~~}
+
+\newcommand{\todo}[1]{[[\emph{\color{teal}TODO: #1}]]}
+\newcommand{\gm}[1]{[[\emph{\color{red}GM: #1}]]}
+\newcommand{\ry}[1]{[[\emph{\color{blue}RM: #1}]]}
+\newcommand{\mh}[1]{[[\emph{\color{red}MH: #1}]]}
+\newcommand{\am}[1]{[[\emph{\color{magenta}AM: #1}]]}
+
+\newcommand{\gmref}[2]{{\color{cyan} #1}~[[\emph{{\color{red} GM: #2}}]]}
+\newcommand{\ryref}[2]{{\color{red} #1}~[[\emph{{\color{blue} RM: #2}}]]}
+\newcommand{\mhref}[2]{{\color{cyan} #1}~[[\emph{{\color{red} MH: #2}}]]}
+\newcommand{\amref}[2]{{\color{cyan} #1}~[[\emph{{\color{magenta} AM: #2}}]]}
+
+%\renewcommand{\todo}[1]{}
+%\renewcommand{\gm}[1]{}
+%\renewcommand{\ry}[1]{}
+%\renewcommand{\mh}[1]{}
+%\renewcommand{\am}[1]{}
+%\renewcommand{\gmref}[2]{#1}
+%\renewcommand{\ryref}[2]{#1}
+%\renewcommand{\mhref}[2]{#1}
+
+
+
+\renewcommand*\Call[2]{\textproc{#1}(#2)}
+%% Terminology
+
+%\def\protected{Private-Private}
+%\def\secure{Private-Public}
+
+% %% MATH STUFF
+
+\def\Lap{\mbox{Lap}}
+\def\sens{\Delta}
+\def\LM{\mbox{LM}}
+
+
+
+\newcommand{\Lone}[1]{\left\Vert #1  \right\Vert_1}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\set}[1]{\{#1\}}   % Set (as in \set{1,2,3}).
+
+\newcommand{\vect}[1]{\bm{#1}}
+\newcommand{\matr}[1]{\bm{#1}}
+\def\W{{\matr{W}}}
+\def\A{\matr{A}}
+\def\B{\matr{B}}
+\def\C{\matr{C}}
+\def\D{\matr{D}}
+\def\L{\matr{L}}
+\def\I{\matr{I}}
+\def\T{\matr{T}}
+\def\R{\matr{R}}
+\def\P{\matr{P}}
+\def\S{\matr{S}}
+\def\M{\matr{M}}
+\def\Y{\matr{Y}}
+\def\X{\matr{X}}
+\def\x{\vect{x}}
+\def\q{\vect{q}}
+\def\a{\vect{a}}
+\def\u{\vect{u}}
+\def\v{\vect{v}}
+\def\w{\vect{w}}
+
+\def\xhat{\bar{\x}}
+\def\y{\vect{y}}
+
+\newcommand{\Wnt}{\ensuremath{\mathcal{W}_{\mbox{\tiny SF1}}}}
+\newcommand{\Wst}{\ensuremath{\mathcal{W}_{\mbox{\tiny SF1+}}}}
+
+% \newcommand{\scale}[1]{\Lone{#1}}
+% \newcommand{\vect}[1]{\mathbf{#1}}
+% \newcommand{\E}{\mathbb{E}}
+% \def\bb{\mathbb{B}}
+
+% \def\e{\vect{e}}
+% \def\x{\vect{x}}
+% \def\p{\vect{p}}
+% \def\estx{\vect{\hat x}}
+% \def\tildex{\vect{\tilde x}}
+% \def\ests{\vect{\hat s}}
+% \def\W{\vect{W}}
+% \def\z{\vect{z}}
+% \def\Z{\vect{Z}}
+
+ \def\db{I}  % db instance
+ \def\nbrs{nbrs}
+% \def\dbdom{\mathbb{Z}_{\geq 0}^n}  % domain of database is vectors of non-neg integers
+% \def\allbuckets{\mathcal{B}}
+% \def\allhist{\mathcal{P}}
+% % \def\intavg{\mathbf{\bar{x}_{j_1,j_2}}}  % DO NOT USE THIS, use \bmean instead
+% \def\bmean{\frac{b_i(\x)}{|b_i|}}  %\bar{x}_{j_1,j_2}
+% \def\unexp{{expand}}
+
+% \def\hcost{pcost}
+% \def\bcost{bcost}
+
+% \def\real{\mathbb{R}}
+% \def\posreal{\mathbb{R}_{\geq 0}}
+% \def\sens{\Delta}
+
+% \newcommand{\Lone}[1]{\left\Vert #1  \right\Vert_1}
+% \newcommand{\Ltwo}[1]{\left\Vert #1  \right\Vert_2}
+
+% \def\myvert{\;\vert\;}
+
+% \def\B{B}  % quick and dirty change to remove bold for \B
+
+
+% % NOT NECESSARILY USED
+
+% % \newcommand{\stitle}[1]{\vspace{2mm}\noindent{\large \emph{#1}}.\\}
+% %\newcommand{\stitle}[1]{\subsubsection*{#1}\vspace{-2mm}}
+
+
+
+
+
+
+% \def\param{\rho}
+% \def\seed{\sigma}
+
+% \def\ones{\vect{1}}
+% \def\zeros{\vect{0}}
+% \def\plus{{\!+}}
+% \def\b{\vect{b}}
+% \def\a{\vect{a}}
+% \def\i{\vect{i}}
+% \def\y{\vect{y}}
+% \def\q{\vect{q}}
+% \def\w{\vect{w}}
+% \def\v{\vect{v}}
+% \def\estw{\vect{\hat w}}
+% \def\estq{\vect{\hat q}}
+% \def\A{\vect{A}}
+% \def\T{\vect{T}}
+% \def\Q{\vect{Q}}
+% \def\M{\vect{M}}
+% \def\D{\vect{D}}
+% \def\d{\vect{d}}
+% \def\P{\vect{P}}
+% \def\p{\vect{p}}
+% \def\I{\vect{I}}
+% \def\V{\vect{V}}
+% \def\H{\vect{H}}
+% \def\G{\vect{G}}
+% \def\R{\vect{R}}
+% \def\X{\vect{X}}
+% \def\Y{\vect{Y}}
+% \def\s{\vect{s}}
+% \def\tq{\hat{q}}
+% \def\tW{\hat{W}}
+% \def\tWW{\mathbf{\tW}}
+% \def\lambdaB{\vect{\lambda}}
+% \def\LambdaB{\vect{\Lambda}}
+
+
+
+
+% \def\esty{\vect{\hat y}}
+% \def\m{\vect{m}}
+
+% \def\dom{\mathbb{N}^n}
+% \def\rng{\mathcal{Y}}
+% \def\obj{y}
+
+% \def\uni{\mathcal{U}}
+% \def\coll{\mathcal{S}}
+% \def\packing{\mathcal{C}}
+% \def\Lap{\mbox{Laplace}}
+
+% \def\dom{\mathcal{D}}%(\mathbb{A})}
+% \def\reg{reg}
+
+% \def\cover{H}
+% \def\allparts{\mathcal{P}(\allbuckets)}
+
+% \def\DWnospace{\text{DAWA}}
+% \def\DW{\text{DAWA} }
+% \def\DWall{\text{DAWA-all} }
+% \def\DWapprox{\text{DAWA-subset} }
+
+ \def\algG{\mathcal{K}}  % generic DP algorithm
+% \def\alg{\mathcal{K}}  % algorithms of this paper
+% \def\LM{\mathcal{L}}	% Laplace mechanism
+% \def\GM{\mathcal{G}}	% Laplace mechanism
+% \def\MM{\mathcal{M}}	% Matrix mechanism
+% \def\hist{{hist}}	% Matrix mechanism
+
+% \def\7{\surd}
+
+
+% %% ALGORITHM MACROS
+
+% \def\propPart{\rho}
+% \newcommand{\uniform}{\text{{\sc Uniform}}\xspace}
+% \newcommand{\identity}{\text{{\sc Identity}}\xspace}
+% \newcommand{\privelet}{\text{{\sc Privelet}}\xspace}
+% \newcommand{\Hier}{\text{{\sc H}}\xspace}
+% \newcommand{\Hierb}{\text{{\sc H$_b$}}\xspace}
+% \newcommand{\greedyH}{\text{{\sc Greedy H}}\xspace}
+% \newcommand{\dawa}{\text{{\sc DAWA}}\xspace}
+% \newcommand{\mwem}{\text{{\sc MWEM}}\xspace}
+% \newcommand{\mwemv}{\text{{\sc MWEM$^*$}}\xspace}
+% \newcommand{\efpa}{\text{{\sc EFPA}}\xspace}
+% \newcommand{\php}{\text{{\sc PHP}}\xspace}
+% \newcommand{\ahp}{\text{{\sc AHP}}\xspace}
+% \newcommand{\ahpv}{\text{{\sc AHP$^*$}}\xspace}
+% \newcommand{\structurefirst}{\text{{\sc SF}}\xspace}
+% % \newcommand{\sampling}{\text{{SAMPLING ERROR}}\xspace}  % make it a little different because it's not a private algo?
+% \newcommand{\dpcube}{\text{{\sc DPCube}}\xspace}
+% \newcommand{\quadtree}{\text{{\sc QuadTree}}\xspace}
+% \newcommand{\hybridtree}{\text{{\sc HybridTree}}\xspace}
+% \newcommand{\UG}{\text{{\sc UGrid}}\xspace}
+% \newcommand{\AG}{\text{{\sc AGrid}}\xspace}
+
+% %% DATASET MACROS
+
+% \newcommand{\patent}{\text{{\sc Patent}}\xspace}
+% \newcommand{\hepph}{\text{{\sc HepPh}}\xspace}
+% \newcommand{\income}{\text{{\sc Income}}\xspace}
+% \newcommand{\adult}{\text{{\sc Adult}}\xspace}
+% \newcommand{\searchlogs}{\text{{\sc Search}}\xspace}
+% \newcommand{\nettrace}{\text{{\sc Trace}}\xspace}
+% \newcommand{\medcost}{\text{{\sc Medcost}}\xspace}
+% \newcommand{\bidsfj}{\text{{\sc Bids-FJ}}\xspace}
+% \newcommand{\bidsfm}{\text{{\sc Bids-FM}}\xspace}
+% \newcommand{\bidsall}{\text{{\sc Bids-All}}\xspace}
+% \newcommand{\mdsalary}{\text{{\sc MD-Sal}}\xspace}
+% \newcommand{\mdsalaryfa}{\text{{\sc MD-Sal-FA}}\xspace}
+
+% \newcommand{\lcreqfa}{\text{{\sc LC-Req-F1}}\xspace}
+% \newcommand{\lcreqfb}{\text{{\sc LC-Req-F2}}\xspace}
+% \newcommand{\lcreqall}{\text{{\sc LC-Req-All}}\xspace}
+% \newcommand{\lcdtirfa}{\text{{\sc LC-DTIR-F1}}\xspace}
+% \newcommand{\lcdtirfb}{\text{{\sc LC-DTIR-F2}}\xspace}
+% \newcommand{\lcdtirall}{\text{{\sc LC-DTIR-All}}\xspace}
+% %% 2D DATASETS
+% \newcommand{\TDadult}{\text{{\sc Adult-2D}}\xspace}
+% \newcommand{\TDloan}{\text{{\sc LC-2D}}\xspace}
+% \newcommand{\TDtwitter}{\text{{\sc TWITTER-100-100}}\xspace}
+% \newcommand{\TDcheckin}{\text{{\sc Gowalla}}\xspace}
+% \newcommand{\TDstoke}{\text{{\sc Stroke}}\xspace}
+% \newcommand{\TDmdsalary}{\text{{\sc MD-Sal-2D}}\xspace}
+% \newcommand{\TDbeijingtaxis}{\text{{\sc BJ-Cabs-S}}\xspace}
+% \newcommand{\TDbeijingtaxie}{\text{{\sc BJ-Cabs-E}}\xspace}
+% \newcommand{\TDcabspottings}{\text{{\sc SF-Cabs-S}}\xspace}
+% \newcommand{\TDcabspottinge}{\text{{\sc SF-Cabs-E}}\xspace}
+% \newcommand{\TDlbl}{\text{{\sc LBL}}\xspace}
+
+
+% %% WORKLOAD MACROS
+% \newcommand{\randomworkload}{\text{{\em Random}}\xspace}
+% \newcommand{\randomsmall}{\text{{\em Random Small}}\xspace}
+% \newcommand{\prefixworkload}{\text{{\em Prefix}}\xspace}
