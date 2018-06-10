@@ -4,6 +4,7 @@ import itertools
 import implicit
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
+import utility
 
 class Workload:
     def __init__(self):
@@ -131,11 +132,11 @@ class Matrix(Workload):
     def W(self):
         return self.matrix
 
-class MatrixNormal(Workload):
-    def __init__(self, normal, queries):
+class MatrixGram(Workload):
+    def __init__(self, gram, queries):
         self.queries = queries
         self.W = None
-        self.WtW = normal 
+        self.WtW = gram 
 
 class Prefix(Workload):
     def __init__(self, domain):
@@ -149,10 +150,7 @@ class Prefix(Workload):
     @property 
     def W(self):
         n = self.domain
-        Q = np.zeros((n,n))
-        for i in range(n):
-            Q[i,:i+1] = 1
-        return Q
+        return np.tril(np.ones((n,n)))
 
 class AllRange(Workload):
     def __init__(self, domain):
@@ -179,14 +177,6 @@ class AllRange(Workload):
         X = np.outer(r, r[::-1])
         return np.minimum(X, X.T)
 
-#    def _WtW(self):
-#        n = self.domain
-#        QtQ = np.zeros((n,n))
-#        for i in range(n):
-#            for j in range(i, n):
-#                QtQ[i,j] = QtQ[j,i] = (i+1) * (n-j)
-#        return QtQ
-
 class WidthKRange(Workload):
     def __init__(self, domain, widths):
         """ 
@@ -210,6 +200,40 @@ class WidthKRange(Workload):
                 W[row+i, i:i+k] = 1.0
             row += n - k + 1
         return W
+    
+class AllNormK(Workload):
+    def __init__(self, domain, norms):
+        """
+        All predicate queries that sum k elements of the domain
+        :param domain: The domain size
+        :param norms: the L1 norm (number of 1s) of the queries (int or list of ints)
+        """
+        self.domain = domain
+        if type(norms) is int:
+            norms = [norms]
+        self.norms = norms
+        self.queries = sum(utility.nCr(domain, k) for k in norms)
+        
+    @property
+    def W(self):
+        Q = np.zeros((self.queries, self.domain))
+        idx = 0
+        for k in self.norms:
+            for q in itertools.combinations(range(self.domain), k):
+                Q[idx, q] = 1.0
+                idx += 1
+        return Q
+    
+    # TODO(ryan): the entries of this matrix may become huge...
+    # consider a normalized WtW?
+    @property
+    def WtW(self):
+        # WtW[i,i] = nCr(n-1, k-1) (1 for each query having q[i] = 1)
+        # WtW[i,j] = nCr(n-2, k-2) (1 for each query having q[i] = q[j] = 1)
+        n = self.domain
+        diag = sum(utility.nCr(n-1, k-1) for k in self.norms)
+        off = sum(utility.nCr(n-2, k-2) for k in self.norms)
+        return off*np.ones((n,n)) + (diag-off)*np.eye(n)      
 
 class Identity(Workload):
     def __init__(self, domain):
@@ -334,7 +358,7 @@ class Disjuncts(Concat):
         WtWs[1][0] *= -1
         WtWs[2][0] *= -1
         
-        workloads = [Kron([MatrixNormal(WtW, 1) for WtW in K]) for K in WtWs]
+        workloads = [Kron([MatrixGram(WtW, 1) for WtW in K]) for K in WtWs]
         Concat.__init__(self, workloads)
 
 class Marginal(Workload):
@@ -442,14 +466,6 @@ class Marginals(Concat):
 	ans = np.prod(dom) * np.dot(phi, dphi)
         var = 2.0 / eps**2
         return var * delta * ans
-
-class LowDimMarginals(Marginals):
-    def __init__(self, domain, max_dim):
-        weights = {}
-        for key in itertools.product(*[[1,0]]*len(domain)):
-            if sum(key) <= max_dim:
-                weights[key] = 1.0
-        Marginals.__init__(self, domain, weights) 
 
 def DimKMarginals(domain, dims):
     if type(dims) is int:

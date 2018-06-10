@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def discretize(strategy, digits=2):
     """
@@ -12,3 +13,8 @@ def discretize(strategy, digits=2):
         return np.round(strategy*10**digits).astype(int)
     elif type(strategy) is list:
         return [discretize(S, digits) for S in strategy]
+
+def nCr(n, r):
+    f = math.factorial
+    return f(n) / f(r) / f(n-r)
+    
