@@ -7,6 +7,14 @@ from scipy.sparse.linalg import spsolve_triangular
 import utility
 
 class Workload:
+    """
+    A Workload encodes a set of linear queries.  This class supports functions for getting the
+    workload in matrix form, as well as the workload in Gram matrix form (i.e., W^T W).  When 
+    possible it is preferable to use the workload in Gram matrix form because it has fixed size
+    even for workloads with many queries.  This class also supports function for computing expected
+    error of a strategy (or confidence intervals for data-dependent mechanisms).
+    """
+
     def __init__(self):
         pass
    
@@ -73,6 +81,13 @@ class Workload:
         """ compute a normalized version of expected squared error """ 
         return np.sqrt(self.expected_error(strategy, eps) / self.queries)
 
+    def per_query_error(self, strategy, eps=np.sqrt(2)):
+        delta = np.abs(strategy).sum(axis=0).max()
+        var = 2.0/ eps**2
+        X = self.W.dot(np.linalg.pinv(strategy))
+        err = (X**2).sum(axis=1)
+        return var * delta * err
+
     def __rmul__(self, const):
         return Multiply(self, const)
 #        return Matrix(const * self.W)
@@ -135,8 +150,11 @@ class Matrix(Workload):
 class MatrixGram(Workload):
     def __init__(self, gram, queries):
         self.queries = queries
-        self.W = None
         self.WtW = gram 
+
+    @property
+    def W(self):
+        raise Exception('MatrixGram class does not have property W')
 
 class Prefix(Workload):
     def __init__(self, domain):
@@ -282,6 +300,9 @@ class Concat(Workload):
     def expected_error(self, strategy, eps=np.sqrt(2)):
         return sum(W.expected_error(strategy, eps) for W in self.workloads) 
 
+    def per_query_error(self, strategy, eps=np.sqrt(2)):
+        return np.concatenate([W.per_query_error(strategy, eps) for W in self.workloads])
+
     def __rmul__(self, const):
         workloads = []  
         for W in self.workloads:
@@ -326,6 +347,11 @@ class Kron(Workload):
         errors = [W.expected_error(A) for W, A in zip(self.workloads, strategy)]
         return var * np.prod(errors)
 
+    def per_query_error(self, strategy, eps=np.sqrt(2)):
+        var = 2.0 / eps**2
+        errors = [W.per_query_error(A) for W, A in zip(self.workloads, strategy)]
+        return var * reduce(np.kron, errors)
+
     def __rmul__(self, const):
         workloads = list(self.workloads)
         workloads[0] = const * workloads[0]
@@ -344,6 +370,11 @@ class Kron(Workload):
         return Kron(workloads)
 
 class Disjuncts(Concat):
+    """
+    Just like the Kron workload class can represent a cartesian product of predicate counting
+    queries where the predicates are conjunctions, this workload class can represent a cartesian
+    product of predicate counting queries where the predicates are disjunctions.
+    """
     def __init__(self, workloads):
         WtWs = []
         for W in workloads:
@@ -361,24 +392,28 @@ class Disjuncts(Concat):
         workloads = [Kron([MatrixGram(WtW, 1) for WtW in K]) for K in WtWs]
         Concat.__init__(self, workloads)
 
-class Marginal(Workload):
-    def __init__(self, domain):
-        self.domain = domain
-        self.queries = domain+1
-   
-    @property 
-    def W(self):
-        return np.vstack([np.ones(self.domain), np.eye(self.domain)])
+    # TODO(ryan): should implement per_query_error for this class
 
-class MarginalTable(Kron):
+class IdentityTotal(Concat):
+    def __init__(self, domain, weight = 1.0):
+        sub = [Identity(domain), weight*Total(domain)]
+        Concat.__init__(self, sub)
+
+class Marginal(Kron):
     def __init__(self, domain, binary):
-        """ binary[i] = 1 if dimension i is included and binary[i] = 0 if it is marginalized out """
+        """ Queries for a single marginal
+
+        :param domain: the domain size tuple
+        :param binary: a vector encoding the dimensions to marginalize out
+            binary[i] = 1 if dimension i is included and binary[i] = 0 if it is marginalized out 
+        """
         self.binary = binary
-        d = len(domain)
-        subs = [None]*d
-        for i in range(d):
-            if binary[i] == 0: subs[i] = Total(domain[i])
-            else: subs[i] = Identity(domain[i])
+        subs = []
+        for i,n in enumerate(domain):
+            if binary[i] == 0: 
+                subs.append(Total(n))
+            else: 
+                subs.append(Identity(n))
         Kron.__init__(self, subs) 
 
 class Marginals(Concat):
@@ -403,7 +438,7 @@ class Marginals(Concat):
         self.weights.update(weights)
         subs = []
         for key, wgt in weights.items():
-            if wgt > 0: subs.append(wgt * MarginalTable(domain, key))
+            if wgt > 0: subs.append(wgt * Marginal(domain, key))
         Concat.__init__(self, subs)
 
     def weight_vector(self):
