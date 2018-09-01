@@ -4,7 +4,7 @@ import numpy as np
 def optimize(WtW):
     V = WtW
 
-    accuracy = 1e-5
+    accuracy = 1e-10
     max_iter_ls = 50
     max_iter_cg = 5
     theta = 1e-3
@@ -14,7 +14,7 @@ def optimize(WtW):
     n = V.shape[0]
     I = np.eye(n)
     X = I
-    max_iter = 10
+    max_iter = 100
     V = V + theta*np.mean(np.diag(V))*I
     
     iX = I

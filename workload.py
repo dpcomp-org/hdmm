@@ -42,7 +42,7 @@ class Workload:
     def domain(self):
         """ The domain size """
         return self.WtW.shape[0]
-    
+ 
     @property
     def queries(self):
         """ The number of queries in the workload """
@@ -61,8 +61,10 @@ class Workload:
         """
         Given a strategy and a privacy budget, compute the expected squared error
         """
-        A = strategy 
-        X = np.linalg.lstsq(A.T.dot(A), self.WtW)[0]
+        A = strategy
+        AtA1 = np.linalg.inv(A.T.dot(A))
+        X = AtA1.dot(self.WtW)
+        #X = np.linalg.lstsq(A.T.dot(A), self.WtW)[0]
         delta = np.abs(A).sum(axis=0).max()
         trace = np.trace(X)
         var = 2.0 / eps**2
@@ -488,17 +490,17 @@ class Marginals(Concat):
 
         dphi = np.array([np.dot(weights**2, mult[A|b]) for b in range(2**d)])
         delta = np.sum(theta)**2
-	theta2 = theta**2
-	Y = Xmatrix(theta2)
-	params = Y.dot(theta2)
-	X = Xmatrix(params)
-	phi = spsolve_triangular(X, theta2, lower=False)
+        theta2 = theta**2
+        Y = Xmatrix(theta2)
+        params = Y.dot(theta2)
+        X = Xmatrix(params)
+        phi = spsolve_triangular(X, theta2, lower=False)
 
         M = Xmatrix(Xmatrix(phi).dot(theta2))
         if not np.allclose(weights, M.dot(weights)):
-            print 'Workload not supported by strategy'
+            print('Workload not supported by strategy')
 
-	ans = np.prod(dom) * np.dot(phi, dphi)
+        ans = np.prod(dom) * np.dot(phi, dphi)
         var = 2.0 / eps**2
         return var * delta * ans
 
@@ -543,17 +545,17 @@ if __name__ == '__main__':
     tot = Total(10)
     concat = Concat([eye, tot, krange, workload])
     kron = Kron([eye, krange])
-    print kron.W
-    print concat.W  
-    print concat.WtW
-    print workload.WtW
-    print allrange.WtW
-    print krange.W
+    print(kron.W)
+    print(concat.W)
+    print(concat.WtW)
+    print(workload.WtW)
+    print(allrange.WtW)
+    print(krange.W)
    
     weights = { (1, 0, 0) : 1.0, 
                 (0, 1, 0) : 1.0,
                 (0, 0, 1) : 1.0 }
     marginals = Marginals((2, 3, 4), weights)
 
-    print marginals.W 
+    print(marginals.W)
 

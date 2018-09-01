@@ -78,15 +78,19 @@ class TemplateStrategy:
         self.set_workload(W)
         init = self.get_params()
         bnds = [(0,None)] * init.size
+        log = []
         
         def obj(theta):
             self.set_params(theta)
-            return self._loss_and_grad()
+            ans = self._loss_and_grad()
+            log.append(ans[0])
+            return ans
 
-        res = optimize.minimize(obj, init, jac=True, method='L-BFGS-B', bounds=bnds)
+        opts = { 'ftol' : 1e-4 }
+        res = optimize.minimize(obj, init, jac=True, method='L-BFGS-B', bounds=bnds, options=opts)
         t1 = time.time()
         params = self.get_params()
-        ans = { 'time' : t1 - t0, 'loss' : res.fun, 'res' : res, 'params' : params }
+        ans = { 'log' : log, 'time' : t1 - t0, 'loss' : res.fun, 'res' : res, 'params' : params }
         return ans
 
     def restart_optimize(self, W, restarts):
@@ -100,9 +104,6 @@ class TemplateStrategy:
 
 class Default(TemplateStrategy):
     """
-    The Default template strategy is characterized by m x n matrix A' of free parameters
-    where m is the number of queries.  The strategy is A' D where D is a diagonal scaling matrix 
-    that ensures uniform column norm.
     """
     def __init__(self, m, n):
         theta0 = np.random.rand(m*n)
@@ -111,21 +112,25 @@ class Default(TemplateStrategy):
         TemplateStrategy.__init__(theta0) 
 
     def _strategy(self):
-        B = self.get_params().reshape(self.m, self.n)
-        return B / B.sum(axis=0)
+        return self.get_params().reshape(self.m, self.n)
 
     def _loss_and_grad(self):
         WtW = self.workload.WtW
-        B = self.get_params().reshape(self.m, self.n)
-        scale = B.sum(axis=0)
-        A = B / scale
+        A = self.get_params().reshape(self.m, self.n)
+        sums = np.sum(np.abs(A), axis=0)
+        col = np.argmax(sums)
+        F = sums[col]**2
+        # note: F is not differentiable, but we can take subgradients
+        dF = np.zeros_like(A)
+        dF[:,col] = np.sign(A[:,col])*2*sums[col]
         AtA = A.T.dot(A)
         AtA1 = np.linalg.pinv(AtA)
         M = WtW.dot(AtA1)
+        G = np.trace(M)
         dX = -AtA1.dot(M)
-        dA = 2*A.dot(dX)
-        dB = (dfA*scale - (B*dfA).sum(axis=0)) / scale**2
-        return np.trace(M), dB.flatten()
+        dG = 2*A.dot(dX)
+        dA = dF*G + F*dG
+        return F*G, dA.flatten()
 
 class PIdentity(TemplateStrategy):
     """

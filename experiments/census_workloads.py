@@ -57,7 +57,7 @@ def __age3():
     return Matrix(age3)
 
 def CensusKifer():
-    return Kron([Marginal(2), Marginal(2), Marginal(64), Marginal(17), AllRange(115)])
+    return Kron([IdentityTotal(2), IdentityTotal(2), IdentityTotal(64), IdentityTotal(17), AllRange(115)])
 
 def CensusSF1(geography=False):
     P1 = Kron([Total(2), Total(2), Total(64), Total(17), Total(115)])
@@ -66,7 +66,7 @@ def CensusSF1(geography=False):
     P4a = Kron([Total(2), Identity(2), Total(64), Total(17), Total(115)])
     P4b = P1
     P5a = Kron([Total(2), Identity(2), __race1(), Total(17), Total(115)])
-    P5b = Kron([Total(2), Marginal(2), Total(64), Total(17), Total(115)])
+    P5b = Kron([Total(2), IdentityTotal(2), Total(64), Total(17), Total(115)])
     P8a = Kron([Total(2), Total(2), __race2(), Total(17), Total(115)])
     P8b = P1
     P9a = Kron([Total(2), Identity(2), Total(64), Total(17), Total(115)])
@@ -78,30 +78,30 @@ def CensusSF1(geography=False):
     P11b = Kron([Total(2), __notHispanic(), __race2(), Total(17), __adult()])    
     P11c = P10b
     P12a = Kron([Identity(2), Total(2), Total(64), Total(17), __age1()])
-    P12b = Kron([Marginal(2), Total(2), Total(64), Total(17), Total(115)])
+    P12b = Kron([IdentityTotal(2), Total(2), Total(64), Total(17), Total(115)])
     P12_a = Kron([Identity(2), Total(2), __race1(), Total(17), __age1()])
-    P12_b = Kron([Marginal(2), Total(2), __race1(), Total(17), Total(115)])
+    P12_b = Kron([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
     P12_c = Kron([Identity(2), __isHispanic(), Total(64), Total(17), __age1()])
-    P12_d = Kron([Marginal(2), __isHispanic(), Total(64), Total(17), Total(115)])
+    P12_d = Kron([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
     P12_e = Kron([Identity(2), __notHispanic(), __white(), Total(17), __age1()])
-    P12_f = Kron([Marginal(2), __notHispanic(), __white(), Total(17), Total(115)])
+    P12_f = Kron([IdentityTotal(2), __notHispanic(), __white(), Total(17), Total(115)])
     PCT12a = Kron([Identity(2), Total(2), Total(64), Total(17), __age3()])
     PCT12b = P12b
     PCT12_a = Kron([Identity(2), Total(2), __race1(), Total(17), __age3()])
-    PCT12_b = Kron([Marginal(2), Total(2), __race1(), Total(17), Total(115)])
+    PCT12_b = Kron([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
     PCT12_c = Kron([Identity(2), __isHispanic(), Total(64), Total(17), __age3()])
-    PCT12_d = Kron([Marginal(2), __isHispanic(), Total(64), Total(17), Total(115)])
+    PCT12_d = Kron([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
     PCT12_e = Kron([Identity(2), __notHispanic(), __race1(), Total(17), __age3()])
-    PCT12_f = Kron([Marginal(2), __notHispanic(), __race1(), Total(17), Total(115)])
+    PCT12_f = Kron([IdentityTotal(2), __notHispanic(), __race1(), Total(17), Total(115)])
     workloads = [P1,P3a,P3b,P4a,P4b,P5a,P5b,P8a,P8b,P9a,P9b,P9c,P10a,P10b,P11a,P11b,P11c,P12a,P12b,P12_a,P12_b,P12_c,P12_d,P12_e,P12_f,PCT12a,PCT12b,PCT12_a,PCT12_b,PCT12_c,PCT12_d,PCT12_e,PCT12_f]
     if geography:
-        M = Marginal(51)
+        M = IdentityTotal(51)
         workloads = [Kron(W.workloads + [M]) for W in workloads]
     return Concat(workloads) 
     
 
 def CensusSF1Big(geography=True, reallybig=False):
-    M = Marginal(51)
+    M = IdentityTotal(51)
     I = Identity(51)
     T = Total(51)
     sf1 = CensusSF1(reallybig and geography)
@@ -126,14 +126,14 @@ def CensusSF1Approx():
  
     P1 = Kron([Total(2), Total(2), Total(64), Total(17), Total(115)])
     P3 = Kron([Total(2), Total(2), R1, Total(17), Total(115)])
-    P4 = Kron([Total(2), Marginal(2), Total(64), Total(17), Total(115)])
-    P5 = Kron([Total(2), Marginal(2), R1, Total(17), Total(115)])
+    P4 = Kron([Total(2), IdentityTotal(2), Total(64), Total(17), Total(115)])
+    P5 = Kron([Total(2), IdentityTotal(2), R1, Total(17), Total(115)])
     P8 = Kron([Total(2), Total(2), R2, Total(17), Total(115)])
-    P9 = Kron([Total(2), Marginal(2), R2, Total(17), Total(115)])
+    P9 = Kron([Total(2), IdentityTotal(2), R2, Total(17), Total(115)])
     P10 = Kron([Total(2), Total(2), R2, Total(17), __adult()])
-    P11 = Kron([Total(2), Marginal(2), R2, Total(17), __adult()])
-    P12 = Kron([Marginal(2), Marginal(2), R1, Total(17), A1])
-    PCT12 = Kron([Marginal(2), Marginal(2), R1, Total(17), A3])
+    P11 = Kron([Total(2), IdentityTotal(2), R2, Total(17), __adult()])
+    P12 = Kron([IdentityTotal(2), IdentityTotal(2), R1, Total(17), A1])
+    PCT12 = Kron([IdentityTotal(2), IdentityTotal(2), R1, Total(17), A3])
     return Concat([P1, P3, P4, P5, P8, P9, P10, P11, P12, PCT12]) 
 
 def CensusSF1Projected():

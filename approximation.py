@@ -11,6 +11,8 @@ def marginals_approx(W):
 
     The other guarantee is that this function is idempotent: approx(approx(W)) = approx(W)
     """
+    if isinstance(W, workload.Kron):
+        W = workload.Concat([W])
     assert isinstance(W, workload.Concat) and isinstance(W.workloads[0], workload.Kron)
     dom = W.domain
     weights = np.zeros(2**len(dom))
