@@ -35,6 +35,9 @@ class TemplateStrategy:
     def _AtA1(self):
         return np.linalg.pinv(self.A.T.dot(self.A))
 
+    def sparse_matrix(self):
+        return sparse.csr_matrix(self.A)
+
     def strategy(self, form='linop'):
         """ Return a linear operator for the strategy """
         assert form in ['matrix', 'linop']
@@ -147,7 +150,14 @@ class PIdentity(TemplateStrategy):
         self.p = p
         self.n = n
         TemplateStrategy.__init__(self, theta0)
-    
+   
+    def sparse_matrix(self):
+        I = sparse.identity(self.n, format='csr')
+        B = self.get_params().reshape(self.p, self.n)
+        D = 1 + B.sum(axis=0)
+        A = sparse.vstack([I,B], format='csr')
+        return A * sparse.diags(1.0 / D)
+ 
     def _strategy(self):
         I = np.eye(self.n)
         B = self.get_params().reshape(self.p, self.n)
@@ -259,6 +269,9 @@ class Kronecker(TemplateStrategy):
         :param strategies: a list of templates for each dimension of template
         """
         self.strategies = strategies
+
+    def sparse_matrix(self):
+        return reduce(sparse.kron, [A.sparse_matrix() for A in self.strategies])
 
     def set_params(self, params):
         for strategy, param in zip(self.strategies, params):
