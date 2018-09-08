@@ -5,6 +5,8 @@ import implicit
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
 import utility
+from functools import reduce
+
 
 class Workload:
     """
@@ -16,7 +18,8 @@ class Workload:
     """
 
     def __init__(self):
-        pass
+        self.domain = None
+        self.queries = None
    
     @property 
     def W(self):
@@ -31,22 +34,8 @@ class Workload:
         return W^T W as a n x n numpy array
         Note: use this for large workloads (m >> n)
         """
-        self.WtW = self._WtW()
-        return self.WtW
-#        return self.W.T.dot(self.W)
-
-    def _WtW(self):
         return self.W.T.dot(self.W)
 
-    @property
-    def domain(self):
-        """ The domain size """
-        return self.WtW.shape[0]
- 
-    @property
-    def queries(self):
-        """ The number of queries in the workload """
-        return self.W.shape[0]
 
     def evaluate(self, x):
         return self.W.dot(x)
@@ -102,6 +91,8 @@ class Multiply(Workload):
     def __init__(self, base, const):
         self.base = base
         self.const = const
+        self.domain = self.base.domain
+        self.queries = self.base.queries
 
     @property
     def W(self):
@@ -111,19 +102,13 @@ class Multiply(Workload):
     def WtW(self):
         return self.const**2 * self.base.WtW
 
-    @property
-    def domain(self):
-        return self.base.domain
-
-    @property
-    def queries(self):
-        return self.base.queries
-
 class Permuted(Workload):
     def __init__(self, base, seed=0):
         """ the base workload to permute """
         self.idx = np.random.RandomState(seed).permutation(base.domain)
         self.base = base
+        self.domain = self.base.domain
+        self.queries = self.base.queries
 
     @property
     def W(self):
@@ -132,18 +117,12 @@ class Permuted(Workload):
     @property
     def WtW(self):
         return self.base.WtW[self.idx,:][:,self.idx]
-    
-    @property
-    def domain(self):
-        return self.base.domain
-
-    @property
-    def queries(self):
-        return self.base.queries
 
 class Matrix(Workload):
     def __init__(self, matrix):
         self.matrix = matrix
+        self.queries = matrix.shape[0]
+        self.domain = matrix.shape[1]
    
     @property 
     def W(self):
@@ -152,11 +131,16 @@ class Matrix(Workload):
 class MatrixGram(Workload):
     def __init__(self, gram, queries):
         self.queries = queries
-        self.WtW = gram 
+        self.gram = gram 
+        self.domain = gram.shape[0]
 
     @property
     def W(self):
         raise Exception('MatrixGram class does not have property W')
+
+    @property
+    def WtW(self):
+        return self.gram
 
 class Prefix(Workload):
     def __init__(self, domain):
@@ -192,7 +176,8 @@ class AllRange(Workload):
                 r += 1
         return Q
 
-    def _WtW(self):
+    @property
+    def WtW(self):
         r = np.arange(self.domain)+1
         X = np.outer(r, r[::-1])
         return np.minimum(X, X.T)
@@ -289,8 +274,9 @@ class Concat(Workload):
     @property
     def W(self):
         return np.vstack([w.W for w in self.workloads])
-       
-    def _WtW(self):
+
+    @property 
+    def WtW(self):
         return sum(w.WtW for w in self.workloads)
 
     def evaluate(self, x):
@@ -333,7 +319,8 @@ class Kron(Workload):
         """ Do not call this if domain is large """
         return reduce(np.kron, [w.W for w in self.workloads])
 
-    def _WtW(self):
+    @property
+    def WtW(self):
         return reduce(np.kron, [w.WtW for w in self.workloads])
 
     def evaluate(self, x):

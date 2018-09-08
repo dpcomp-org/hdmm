@@ -38,12 +38,12 @@ if __name__ == '__main__':
 
     eye = [np.eye(n) for n in sf1.domain]
     eye[-1] *= 5
-    print sf1.expected_error(eye), workload.Concat.expected_error(approx, eye)   
+    print(sf1.expected_error(eye), workload.Concat.expected_error(approx, eye))
 
     ans = optimize.optimize_marginals(sf1.domain, approx.weight_vector())
     A1 = implicit.marginals_inverse(sf1.domain, ans['theta'], ans['invtheta'])
     noise = lambda: np.random.laplace(loc=0, scale=1.0/np.sqrt(2), size=A1.shape[1])
     noises = [A1.dot(noise()) for _ in range(100)]
-    print ans['error']
-    print approx.average_error_ci(noises)
-    print sf1.average_error_ci(noises)
+    print(ans['error'])
+    print(approx.average_error_ci(noises))
+    print(sf1.average_error_ci(noises))

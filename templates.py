@@ -5,6 +5,8 @@ import workload
 import time
 import approximation
 import implicit
+from functools import reduce
+
 
 class TemplateStrategy:
     """
