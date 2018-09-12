@@ -28,9 +28,14 @@ strategy = templates.KronPIdentity(domain, ps)
 strategy.optimize(W)
 
 # get the sparse, explicit representation of the optimized strategy
-A = strategy.sparse_matrix()
+A = strategy.sparse_matrix().tocsr()
 
-# Round for Geometric Mechanism (skip this is using Laplace Mechanism)
+# Round for Geometric Mechanism (skip this if using Laplace Mechanism)
 A = np.round(A*1000) / 1000.0
 
+# Extract diagonal and non-diagonal portion of strategy
+idx = np.array((A != 0).sum(axis=1) == 1).flatten()
+diag, extra = A[idx], A[~idx]
+
+print(diag.shape, extra.shape)
 print(A)
