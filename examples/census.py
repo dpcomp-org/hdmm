@@ -35,7 +35,7 @@ A = np.round(A*1000) / 1000.0
 
 # Extract diagonal and non-diagonal portion of strategy
 idx = np.array((A != 0).sum(axis=1) == 1).flatten()
-diag, extra = A[idx], A[~idx]
+diag, extra = A[idx].diagonal(), A[~idx]
 
 print(diag.shape, extra.shape)
 print(A)
