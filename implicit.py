@@ -3,7 +3,6 @@ from IPython import embed
 from scipy.sparse.linalg import LinearOperator, aslinearoperator, lsmr
 from scipy import sparse
 import time
-import matplotlib.pyplot as plt
 import itertools
 
 def inverse(B):

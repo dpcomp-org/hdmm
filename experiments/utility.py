@@ -23,7 +23,7 @@ def squared_error(WtW, A, eps = np.sqrt(2)):
     """
     # if not supports(A, WtW): import IPython; IPython.embed()
     if not supports(A, WtW):
-        print 'warning: A doesnt support W'
+        print('warning: A doesnt support W')
     X = np.linalg.lstsq(A.T.dot(A), WtW)[0]
     delta = np.abs(A).sum(axis=0).max()
     trace = np.trace(X)
