@@ -79,6 +79,9 @@ class Workload:
         err = (X**2).sum(axis=1)
         return var * delta * err
 
+    def per_query_rmse(self, strategy, eps=np.sqrt(2)):
+        return np.sqrt(self.per_query_error(strategy, eps))
+
     def __rmul__(self, const):
         return Multiply(self, const)
 #        return Matrix(const * self.W)
