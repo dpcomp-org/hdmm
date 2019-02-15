@@ -124,6 +124,11 @@ class EkteloMatrix(LinearOperator):
     
     def __abs__(self):
         return EkteloMatrix(self.matrix.__abs__())
+    
+    def __sqr__(self):
+        if sparse.issparse(self.matrix):
+            return EkteloMatrix(self.matrix.power(2))
+        return EkteloMatrix(self.matrix**2)
 
 class Identity(EkteloMatrix):
     def __init__(self, n, dtype=np.float64):
@@ -155,6 +160,9 @@ class Identity(EkteloMatrix):
         return self.n
 
     def __abs__(self):  
+        return self
+
+    def __sqr__(self):
         return self
 
 class Ones(EkteloMatrix):
@@ -189,6 +197,9 @@ class Ones(EkteloMatrix):
     
     def __abs__(self):
         return self
+
+    def __sqr__(self):
+        return self
     
 class Weighted(EkteloMatrix):
     """ Class for multiplication by a constant """
@@ -221,6 +232,9 @@ class Weighted(EkteloMatrix):
     
     def __abs__(self):
         return Weighted(self.base.__abs__(), np.abs(self.weight))
+        
+    def __sqr__(self):
+        return Weighted(self.base.__sqr__(), self.weight**2)
     
     @property
     def matrix(self):
@@ -284,6 +298,10 @@ class VStack(EkteloMatrix):
     def __abs__(self):
         return VStack([Q.__abs__() for Q in self.matrices])
 
+    def __sqr__(self):
+        return VStack([Q.__sqr__() for Q in self.matrices])
+
+
 class HStack(EkteloMatrix):
     def __init__(self, matrices):
         # all matrices must have same number of rows
@@ -323,6 +341,10 @@ class HStack(EkteloMatrix):
 
     def __abs__(self):
         return HStack([Q.__abs__() for Q in self.matrices])
+
+    def __sqr__(self):
+        return HStack([Q.__sqr__() for Q in self.matrices])
+
 
 class Kronecker(EkteloMatrix):
     def __init__(self, matrices):
@@ -375,6 +397,9 @@ class Kronecker(EkteloMatrix):
  
     def __abs__(self):
         return Kronecker([Q.__abs__() for Q in self.matrices]) 
+
+    def __sqr__(self):
+        return Kronecker([Q.__sqr__() for Q in self.matrices]) 
 
 class Product(EkteloMatrix):
     def __init__(self, A, B):

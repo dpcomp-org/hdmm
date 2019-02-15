@@ -1,4 +1,4 @@
-from hdmm import matrix
+from hdmm import matrix, utility
 from hdmm.matrix import EkteloMatrix, Identity, Ones, VStack, Kronecker, Product, Sum
 import collections
 import itertools
@@ -256,7 +256,7 @@ class Marginals(VStack):
     def frombinary(domain, weights):
         d = len(domain)
         vect = np.zeros(2**d)
-        for key, wgt in weights.items():
+        for binary, wgt in weights.items():
             key = sum(binary[k]*2**k for k in range(d))
             vect[key] = wgt
         return Marginals(domain, vect)
@@ -265,8 +265,8 @@ class Marginals(VStack):
     def fromtuples(domain, weights):
         d = len(domain)
         vect = np.zeros(2**d)
-        for key, wgt in weights.items():
-            binary = [int(bool(2**k & i)) for k in range(d)]
+        for tpl, wgt in weights.items():
+            binary = [1 if i in attrs else 0 for i in range(len(domain))]
             key = sum(binary[k]*2**k for k in range(d))
             vect[key] = wgt
         return Marginals(domain, vect)
@@ -368,7 +368,8 @@ class AllNormK(EkteloMatrix):
         if type(norms) is int:
             norms = [norms]
         self.norms = norms
-        self.m = sum(utility.nCr(n, k) for k in norms)
+        self.m = int(sum(utility.nCr(n, k) for k in norms))
+        self.shape = (self.m, self.n)
 
     @property
     def matrix(self):
@@ -386,7 +387,7 @@ class AllNormK(EkteloMatrix):
         n = self.n
         diag = sum(utility.nCr(n-1, k-1) for k in self.norms)
         off = sum(utility.nCr(n-2, k-2) for k in self.norms)
-        return off*Ones(n) + (diag-off)*Identity(n)
+        return off*Ones(n,n) + (diag-off)*Identity(n)
 
 class Disjuncts(Sum):
     """
@@ -399,9 +400,9 @@ class Disjuncts(Sum):
         # q or r = - (-q and -r)
         # W = 1 x 1 - (Q1 x R1)
 
-        self.A = Kronecker([Ones(W.shape) for W in workloads]) # totals
-        self.B = -Kronecker([Ones(W.shape) - W for W in workloads]) # negations
-        Sum.__init__([self.A, self.B])
+        self.A = Kronecker([Ones(*W.shape) for W in workloads]) # totals
+        self.B = -1*Kronecker([Ones(*W.shape) - W for W in workloads]) # negations
+        Sum.__init__(self, [self.A, self.B])
 
     def gram(self):
         return Sum([self.A.gram(), self.A.T @ self.B, self.B.T @ self.A, self.B.gram()])
@@ -452,7 +453,7 @@ def DimKMarginals(domain, dims):
     for key in itertools.product(*[[1,0]]*len(domain)):
         if sum(key) in dims:
             weights[key] = 1.0
-    return Marginals(domain, weights)
+    return Marginals.frombinary(domain, weights)
 
 def Range2D(n):
     return Kronecker([AllRange(n), AllRange(n)])

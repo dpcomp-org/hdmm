@@ -204,12 +204,12 @@ class Marginals(TemplateStrategy):
         return workload.Marginals(self._domain, self._params)
 
     def _set_workload(self, W):
-        marg = marginals_approx(W)
+        marg = workload.Marginals.approximate(W) 
         d = len(self._domain)
         A = np.arange(2**d)
         weights = marg.weights
 
-        self._dphi = np.array([np.dot(weights**2, self._mult[A|b]) for b in range(2**d)]) 
+        self._dphi = np.array([np.dot(weights**2, self.gram._mult[A|b]) for b in range(2**d)]) 
 
     def _loss_and_grad(self, params):
         d = len(self._domain)
@@ -368,28 +368,3 @@ def Identity(n):
 def Total(n):
     """ Builds a template strategy that is always Total """
     return Static(np.ones((1,n)))
-
-def marginals_approx(W):
-    """
-    Given a Union-of-Kron workload, find a Marginals workload that approximates it.
-    
-    The guarantee is that for all marginals strategies A, Error(W, A) = Error(M, A) where
-    M is the returned marginals approximation of W.
-    The other guarantee is that this function is idempotent: approx(approx(W)) = approx(W)
-    """
-    if isinstance(W, matrix.Kronecker):
-        W = matrix.VStack([W])
-    assert isinstance(W, matrix.VStack) and isinstance(W.matrices[0], matrix.Kronecker)
-    dom = tuple(Wi.shape[1] for Wi in W.matrices[0].matrices)
-    weights = np.zeros(2**len(dom))
-    for sub in W.matrices:
-        tmp = []
-        for n, piece in zip(dom, sub.matrices):
-            X = piece.gram().dense_matrix()
-            b = float(X.sum() - X.trace()) / (n * (n-1))
-            a = float(X.trace()) / n - b
-            tmp.append(np.array([b,a]))
-        weights += reduce(np.kron, tmp)
-    keys = itertools.product(*[[0,1]]*len(dom))
-    weights = dict(zip(keys, np.sqrt(weights)))
-    return workload.Marginals(dom, weights) 

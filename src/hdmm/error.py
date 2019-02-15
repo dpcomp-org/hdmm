@@ -46,5 +46,5 @@ def per_query_error(W, A, eps=np.sqrt(2), delta=0):
     delta = A.sensitivity()
     var = 2.0/eps**2
     X = W @ A.pinv()
-    err = X.sqr().sum(axis=1)
-    return var * delta * err
+    err = X.__sqr__().sum(axis=1)
+    return var * delta**2 * err
