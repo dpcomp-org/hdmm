@@ -197,72 +197,35 @@ class Marginals(TemplateStrategy):
         self._domain = domain
         d = len(domain)
         self._params = np.random.rand(2**len(domain))
-        mult = np.ones(2**d)
-        for i in range(2**d):
-            for k in range(d):
-                if not (i & (2**k)):
-                    mult[i] *= domain[k]
-        self._mult = mult
+ 
+        self.gram = workload.MarginalsGram(domain, self._params**2)
 
     def strategy(self):
-        dom = self._domain
-        keys = itertools.product(*[[0,1]]*len(dom))
-        weights = dict(zip(keys, np.sqrt(self._params)))
-        return workload.Marginals(dom, weights) 
+        return workload.Marginals(self._domain, self._params)
 
     def _set_workload(self, W):
         marg = marginals_approx(W)
         d = len(self._domain)
         A = np.arange(2**d)
-
-        weights = np.zeros(2**d)
-        for i in range(2**d):
-            key = tuple([int(bool(2**k & i)) for k in range(d)])
-            weights[i] = marg.weights[key]
+        weights = marg.weights
 
         self._dphi = np.array([np.dot(weights**2, self._mult[A|b]) for b in range(2**d)]) 
-
-    def _Xmatrix(self,vect):
-        # the matrix X such that M(u) M(v) = M(X(u) v)
-        d = len(self._domain)
-        A = np.arange(2**d)
-        mult = self._mult
-
-        values = np.zeros(3**d)
-        rows = np.zeros(3**d, dtype=int)
-        cols = np.zeros(3**d, dtype=int)
-        start = 0
-        for b in range(2**d):
-            #uniq, rev = np.unique(a&B, return_inverse=True) # most of time being spent here
-            mask = np.zeros(2**d, dtype=int)
-            mask[A&b] = 1
-            uniq = np.nonzero(mask)[0]
-            step = uniq.size
-            mask[uniq] = np.arange(step)
-            rev = mask[A&b]
-            values[start:start+step] = np.bincount(rev, vect*mult[A|b], step)
-            if values[start+step-1] == 0:
-                values[start+step-1] = 1.0 # hack to make solve triangular work
-            cols[start:start+step] = b
-            rows[start:start+step] = uniq
-            start += step
-        X = sparse.csr_matrix((values, (rows, cols)), (2**d, 2**d))
-        XT = sparse.csr_matrix((values, (cols, rows)), (2**d, 2**d))
-        return X, XT
 
     def _loss_and_grad(self, params):
         d = len(self._domain)
         A = np.arange(2**d)
-        mult = self._mult
+        mult = self.gram._mult
+        Xmatrix = self.gram._Xmatrix
         dphi = self._dphi
         theta = params
 
+        # TODO: accomodate (eps, delta)-DP
         delta = np.sum(theta)**2
         ddelta = 2*np.sum(theta)
         theta2 = theta**2
-        Y, YT = self._Xmatrix(theta2)
+        Y, YT = Xmatrix(theta2)
         params = Y.dot(theta2)
-        X, XT = self._Xmatrix(params)
+        X, XT = Xmatrix(params)
         phi = spsolve_triangular(X, theta2, lower=False)
         # Note: we should be multiplying by domain size here if we want total squared error
         ans = np.dot(phi, dphi)

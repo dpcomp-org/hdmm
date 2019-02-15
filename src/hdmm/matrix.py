@@ -1,9 +1,7 @@
-from ektelo import util
 import numpy as np
 from scipy import sparse
-from scipy.sparse.linalg import LinearOperator, aslinearoperator, lsqr
+from scipy.sparse.linalg import LinearOperator
 from functools import reduce
-import math
 
 class EkteloMatrix(LinearOperator):
     """
@@ -20,10 +18,6 @@ class EkteloMatrix(LinearOperator):
         self.matrix = matrix
         self.dtype = matrix.dtype
         self.shape = matrix.shape
-    
-    def asDict(self):
-        d = util.class_to_dict(self, ignore_list=[])
-        return d
 
     def _transpose(self):
         return EkteloMatrix(self.matrix.T)
@@ -46,7 +40,7 @@ class EkteloMatrix(LinearOperator):
    
     def sensitivity(self):
         # note: this works because np.abs calls self.__abs__
-        return np.max(np.abs(self).sum(axis=1))
+        return np.max(np.abs(self).sum(axis=0))
  
     def sum(self, axis=None):
         # this implementation works for all subclasses too 

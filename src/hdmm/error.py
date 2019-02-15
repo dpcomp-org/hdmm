@@ -1,5 +1,5 @@
 import numpy as np
-from matrix import EkteloMatrix
+from hdmm.matrix import EkteloMatrix
 
 def convert_implicit(A):
     if isinstance(A, EkteloMatrix):
@@ -18,7 +18,7 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     delta = A.sensitivity()
     trace = X.trace()
     var = 2.0 / eps**2
-    return var * delta*82 * trace
+    return var * delta**2 * trace
 
 def rootmse(W, A, eps=np.sqrt(2), delta=0):
     """ compute a normalized version of expected squared error """

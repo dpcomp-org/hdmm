@@ -1,9 +1,11 @@
-from ektelo import matrix
-from ektelo.matrix import EkteloMatrix, Identity, Ones, VStack, Kronecker, Product
+from hdmm import matrix
+from hdmm.matrix import EkteloMatrix, Identity, Ones, VStack, Kronecker, Product, Sum
 import collections
 import itertools
 import numpy as np
 from scipy import sparse
+from scipy.sparse.linalg import spsolve_triangular
+from functools import reduce
 
 def Total(n, dtype=np.float64):
     """
@@ -194,8 +196,14 @@ class RangeQueries(Product):
         return RangeQueries(domain, self._lower+np.array(offset), self._higher+np.array(offset))
 
 class Marginal(Kronecker):
-    def __init__(self, domain, binary):
-        self.binary = binary
+    def __init__(self, domain, key):
+        """
+        :param domain: a d-tuple containing the domain size of the d attributes
+        :param key: a integer key 0 <= key < 2^d identifying the marginal
+        """
+        self.domain = domain
+        self.key = key
+        binary = self.binary()
         subs = []
         for i,n in enumerate(domain):
             if binary[i] == 0:
@@ -204,15 +212,150 @@ class Marginal(Kronecker):
                 subs.append(Identity(n))
         Kronecker.__init__(self, subs)
 
+    def binary(self):
+        i = self.key
+        d = len(self.domain)
+        return tuple([int(bool(2**k & i)) for k in range(d)])
+
+    def tuple(self):
+        binary = self.binary()
+        d = len(self.domain)
+        return tuple(i for i in range(d) if binary[i] == 1)
+
+    @staticmethod
+    def frombinary(domain, binary):
+        d = len(self.domain)
+        key = sum(binary[k]*2**k for k in range(d))
+        return Marginal(domain, key)
+
+    @staticmethod
+    def fromtuple(domain, attrs):
+        binary = [1 if i in attrs else 0 for i in range(len(domain))]
+        return Marginal.frombinary(domain, binary)
+
 class Marginals(VStack):
     def __init__(self, domain, weights):
         self.domain = domain
-        self.weights = collections.defaultdict(lambda: 0.0)
-        self.weights.update(weights)
+        self.weights = weights
         subs = []
-        for key, wgt in weights.items():
+        for key, wgt in enumerate(weights):
             if wgt > 0: subs.append(wgt * Marginal(domain, key))
         VStack.__init__(self, subs)   
+
+    def gram(self):
+        return MarginalsGram(self.domain, self.weights**2)
+   
+    def inv(self):
+        return self.gram().inv() * self.T
+ 
+    def pinv(self):
+        # note: this is a generalized inverse, not necessarily the pseudo inverse though
+        return self.gram().pinv() * self.T
+
+    @staticmethod 
+    def frombinary(domain, weights):
+        d = len(domain)
+        vect = np.zeros(2**d)
+        for key, wgt in weights.items():
+            key = sum(binary[k]*2**k for k in range(d))
+            vect[key] = wgt
+        return Marginals(domain, vect)
+
+    @staticmethod
+    def fromtuples(domain, weights):
+        d = len(domain)
+        vect = np.zeros(2**d)
+        for key, wgt in weights.items():
+            binary = [int(bool(2**k & i)) for k in range(d)]
+            key = sum(binary[k]*2**k for k in range(d))
+            vect[key] = wgt
+        return Marginals(domain, vect)
+   
+    @staticmethod
+    def approximate(W):
+        """
+        Given a Union-of-Kron workload, find a Marginals workload that approximates it.
+        
+        The guarantee is that for all marginals strategies A, Error(W, A) = Error(M, A) where
+        M is the returned marginals approximation of W.
+        The other guarantee is that this function is idempotent: approx(approx(W)) = approx(W)
+        """
+        if isinstance(W, matrix.Kronecker):
+            W = matrix.VStack([W])
+        assert isinstance(W, matrix.VStack) and isinstance(W.matrices[0], matrix.Kronecker)
+        dom = tuple(Wi.shape[1] for Wi in W.matrices[0].matrices)
+        weights = np.zeros(2**len(dom))
+        for sub in W.matrices:
+            tmp = []
+            for n, piece in zip(dom, sub.matrices):
+                X = piece.gram().dense_matrix()
+                b = float(X.sum() - X.trace()) / (n * (n-1))
+                a = float(X.trace()) / n - b
+                tmp.append(np.array([b,a]))
+            weights += reduce(np.kron, tmp)
+        return Marginals(dom, np.sqrt(weights))
+       
+class MarginalsGram(Sum):
+    def __init__(self, domain, weights):
+        self.domain = domain
+        self.weights = weights
+        subs = []
+        for key, wgt in enumerate(weights):
+            Q = Marginal(domain, key)
+            if wgt != 0: subs.append(wgt * Q.gram())
+
+        d = len(domain)
+        mult = np.ones(2**d)
+        for i in range(2**d):
+            for k in range(d):
+                if not (i & (2**k)):
+                    mult[i] *= domain[k]
+        self._mult = mult
+
+        Sum.__init__(self, subs)
+
+    def _Xmatrix(self,vect):
+        # the matrix X such that M(u) M(v) = M(X(u) v)
+        d = len(self.domain)
+        A = np.arange(2**d)
+        mult = self._mult
+
+        values = np.zeros(3**d)
+        rows = np.zeros(3**d, dtype=int)
+        cols = np.zeros(3**d, dtype=int)
+        start = 0
+        for b in range(2**d):
+            #uniq, rev = np.unique(a&B, return_inverse=True) # most of time being spent here
+            mask = np.zeros(2**d, dtype=int)
+            mask[A&b] = 1
+            uniq = np.nonzero(mask)[0]
+            step = uniq.size
+            mask[uniq] = np.arange(step)
+            rev = mask[A&b]
+            values[start:start+step] = np.bincount(rev, vect*mult[A|b], step)
+            if values[start+step-1] == 0:
+                values[start+step-1] = 1.0 # hack to make solve triangular work
+            cols[start:start+step] = b
+            rows[start:start+step] = uniq
+            start += step
+        X = sparse.csr_matrix((values, (rows, cols)), (2**d, 2**d))
+        XT = sparse.csr_matrix((values, (cols, rows)), (2**d, 2**d))
+        return X, XT
+
+    def inv(self):
+        assert self.weights[-1] != 0, 'matrix is not invertible'
+        X, _ = self._Xmatrix(self.weights)
+        z = np.zeros_like(self.weights)
+        z[-1] = 1.0
+        phi = spsolve_triangular(X, z, lower=False)
+        return MarginalsGram(self.domain, phi)
+
+    def pinv(self):
+        Y, _ = self._Xmatrix(self.weights)
+        params = Y.dot(self.weights)
+        X, _ = self._Xmatrix(params)
+        phi = spsolve_triangular(X, self.weights, lower=False)
+        return MarginalsGram(self.domain, phi)
 
 class AllNormK(EkteloMatrix):
     def __init__(self, n, norms):
