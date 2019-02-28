@@ -1,4 +1,4 @@
-from hdmm import matrix, workload
+from hdmm import matrix, workload, error
 from scipy import optimize
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
@@ -24,13 +24,12 @@ class TemplateStrategy:
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
         self._set_workload(W)
-        init = self._params
+        init = np.random.rand(self._params.size)
         bnds = [(0,None)]*init.size
        
         opts = { 'ftol' : 1e-4 }
         res = optimize.minimize(self._loss_and_grad, init, jac=True, method='L-BFGS-B', bounds=bnds, options=opts)
         self._params = res.x
-
         
 class Default(TemplateStrategy):
     def __init__(self, m, n):
@@ -180,7 +179,7 @@ class Kronecker(TemplateStrategy):
             temp = self._templates[i]
             for j in range(k):
                 temp._set_workload(workloads[j][i])
-                C[j][i] = temp._loss_and_grad(temp._params)[0]
+                C[i,j] = temp._loss_and_grad(temp._params)[0]
         for _ in range(10):
             #err = C.prod(axis=0).sum()
             for i in range(d):
@@ -190,7 +189,31 @@ class Kronecker(TemplateStrategy):
                 temp.optimize(What)
                 for j in range(k):
                     temp._set_workload(workloads[j][i])
-                    C[j][i] = temp._loss_and_grad(temp._params)[0]
+                    C[i,j] = temp._loss_and_grad(temp._params)[0]
+
+class Union(TemplateStrategy):
+    def __init__(self, templates):
+        # expects workload to be a list of same length as templates
+        # workload may contain subworkloads defined over different marginals of the data vector:w
+        self._templates = templates
+        self._weights = np.ones(len(templates)) / len(templates)
+    
+    def strategy(self):
+        return matrix.VStack([w * T.strategy() for w, T in zip(self._weights, self._templates)])
+        
+    def optimize(self, W):
+        assert isinstance(W, list), 'workload must be a list'
+        assert len(W) == len(self._templates), 'length of workload list must match templates'
+       
+        errors = [] 
+        for Ti, Wi in zip(self._templates, W):
+            Ti.optimize(Wi)
+            errors.append(error.expected_error(Wi, Ti.strategy()))
+
+        weights = (2 * np.array(errors))**(1.0/3.0)
+        weights /= weights.sum()
+        self._weights = weights 
+            
 
 class Marginals(TemplateStrategy):
     def __init__(self, domain):
@@ -326,6 +349,16 @@ def KronPIdentity(ps, ns):
     :param ns: the domain size of each dimension
     """
     return Kronecker([PIdentity(p, n) for p,n in zip(ps, ns)])
+
+def UnionKron(ps, ns):
+    """
+    Builds a template strategy that is a union of Kronecker products, where each
+    kron product is a PIdentity strategy
+
+    :param ps: a table of p values of size k x d where k is number of strategies in union and d in number of dimensions
+    :param ns: the domain size of each dimension (length d tuple)
+    """
+    return Union([KronPIdentity(p, ns) for p in ps])
 
 def RangeTemplate(n, start=32, branch=4, shared=False):
     """

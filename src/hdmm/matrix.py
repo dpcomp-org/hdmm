@@ -253,6 +253,16 @@ class Sum(EkteloMatrix):
 
     def _transpose(self):
         return Sum([Q.T for Q in self.matrices])
+
+    def __mul__(self, other):
+        if isinstance(other,EkteloMatrix):
+            return Sum([Q @ other for Q in self.matrices]) # should use others rmul though
+        return EkteloMatrix.__mul__(self, other)
+
+    def trace(self):
+        # only if Q are positive semidefinite...
+        # TODO: might b e better to have diag function
+        return sum(Q.trace() for Q in self.matrices)
     
     @property
     def matrix(self):

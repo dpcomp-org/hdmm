@@ -14,7 +14,7 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     W, A = convert_implicit(W), convert_implicit(A)
     AtA1 = A.gram().pinv()
     WtW = W.gram()
-    X = AtA1 @ WtW
+    X = WtW @ AtA1
     delta = A.sensitivity()
     trace = X.trace()
     var = 2.0 / eps**2
