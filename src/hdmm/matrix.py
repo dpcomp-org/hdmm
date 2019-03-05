@@ -59,6 +59,9 @@ class EkteloMatrix(LinearOperator):
     def trace(self):
         return np.trace(self.dense_matrix())
 
+    def diag(self):
+        return np.diag(self.dense_matrix())
+
     def _adjoint(self):
         return self._transpose()
 
