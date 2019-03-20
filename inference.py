@@ -1,5 +1,11 @@
 import numpy as np
 from scipy import optimize
+from scipy.sparse.linalg import lsmr
+
+def wnnls(W, A, y):
+    xhat = lsmr(A, y)[0]
+    yhat = W.dot(xhat)
+    return nnls(W, yhat) 
 
 def nnls(A, y, l1_reg=0, l2_reg=0, maxiter = 15000):
     """
@@ -25,5 +31,5 @@ def nnls(A, y, l1_reg=0, l2_reg=0, maxiter = 15000):
                                                 maxiter=maxiter,
                                                 m=1)
     xest[xest < 0] = 0.0
-    return xest, info
+    return xest
 
