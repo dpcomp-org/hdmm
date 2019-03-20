@@ -415,6 +415,12 @@ class ExplicitGram:
     
     def gram(self):
         return EkteloMatrix(self.matrix)
+
+def Moments(n, k=3):
+    N = np.arange(n)
+    K = np.arange(1,k+1)
+    W = N[None]**K[:,None]
+    return EkteloMatrix(W)
         
 def WidthKRange(n, widths):
     if type(widths) is int:
@@ -426,7 +432,7 @@ def WidthKRange(n, widths):
         for i in range(n-k+1):
             W[row+i, i:i+k] = 1.0
         row += n - k + 1
-    return EktelOMatrix(W)
+    return EkteloMatrix(W)
 
 def RandomRange(shape_list, domain, size, seed=9001):
     if type(domain) is int:
