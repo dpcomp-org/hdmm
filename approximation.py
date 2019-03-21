@@ -1,6 +1,7 @@
 import numpy as np
 import workload
 import itertools
+from functools import reduce
 
 def marginals_approx(W):
     """

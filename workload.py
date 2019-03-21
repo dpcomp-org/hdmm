@@ -51,7 +51,10 @@ class Workload:
         Given a strategy and a privacy budget, compute the expected squared error
         """
         A = strategy
-        AtA1 = np.linalg.inv(A.T.dot(A))
+        try:
+            AtA1 = np.linalg.inv(A.T.dot(A))
+        except:
+            AtA1 = np.linalg.pinv(A.T.dot(A))
         X = AtA1.dot(self.WtW)
         #X = np.linalg.lstsq(A.T.dot(A), self.WtW)[0]
         delta = np.abs(A).sum(axis=0).max()

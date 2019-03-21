@@ -1,7 +1,7 @@
 from workload import *
 import templates
 import itertools
-
+from approximation import marginals_approx
 
 
 # Resources
@@ -79,12 +79,19 @@ W = Concat([cenrace, gqlevels, hispanic, hispanic_cenrace, hispanic_numraces, ho
         institutionlized, numraces, total, votingage, votingage_cenrace, votingage_hispanic,
         votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces])
 
-
 def opt_p_identity(workload=None):
     ps = [1, 1, 8, 4]   # hard-coded parameters
-    template = templates.KronPIdentity(workload.domain, ps)
-    template.optimize(workload)
-    return [sub.A for sub in template.strategies]
+
+    best = np.inf
+    best_template = None
+
+    for _ in range(25):
+        template = templates.KronPIdentity(workload.domain, ps)
+        res = template.optimize(workload)
+        if res['loss'] < best:
+            best = res['loss']
+            best_template = template 
+    return [sub.A for sub in best_template.strategies]
 
 
 # build manual strategy
@@ -92,19 +99,68 @@ def manual_strategy():
     identity = Kron([Identity(2), Identity(2), Identity(63), Identity(8)]) # weight should be .1
     hhgq = Kron([Total(2), Total(2), Total(63), Identity(8)])   # weight should be .225
     others = Kron([Identity(2), Identity(2), Identity(63), Total(8)])   # weight should be .675
+
+    weights = np.zeros(16)
+    weights[15] = 0.1 # binary 1111
+    weights[8] = 0.225 # binary 1000
+    weights[7] = 0.675 # binary 0111
+
     # add weights to below:
-    return Concat([identity, hhgq, others])
+    return weights
+
+def marginal_strategy(workload=None):
+    best, best_template = np.inf, None
+    for _ in range(25):
+        template = templates.Marginals(workload.domain)
+        res = template.optimize(workload)
+        if res['loss'] < best:
+            best = res['loss']
+            best_template = template 
+    return best_template.theta
+
+def union_kron():
+    W1 = Concat([cenrace, hispanic, hispanic_cenrace, hispanic_numraces,
+        numraces, total, votingage, votingage_cenrace, votingage_hispanic,
+        votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces])
+
+    ps = [1,1,8,1]
+
+    best = np.inf
+    best_template = None
+
+    for _ in range(25):
+        template = templates.KronPIdentity(W1.domain, ps)
+        res = template.optimize(W1)
+        if res['loss'] < best:
+            best = res['loss']
+            best_template = template 
+
+    identity = [np.eye(2), np.eye(2), np.eye(63), np.ones((1,8))]
+    strategy = [sub.A for sub in best_template.strategies]
+
+    print(W1.rootmse(identity), W1.rootmse(strategy))
+
+    #W2 = Concat([gqlevels, institutionalized, household])
+
 
 if __name__ == '__main__':
 
     print(W.queries)
 
+    union_kron()
+
     A = opt_p_identity(workload=W)
     err = W.rootmse(strategy=A)
+    print('KronPIdentity', err)
 
-    print(err)
+    W = marginals_approx(W)
 
+    A = marginal_strategy(workload=W)
+    marg_err = W.rootmse(strategy=A)
+    print('Marginals', marg_err)
 
-    # this doesn't work
-    # robert_err = W.rootmse(strategy=manual_strategy())
+    robert_err = W.rootmse(strategy=manual_strategy())
+    print('Robert', robert_err)
+
+    print(A / A.sum())
 
