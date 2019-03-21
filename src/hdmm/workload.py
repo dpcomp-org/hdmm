@@ -1,5 +1,5 @@
 from hdmm import matrix, utility
-from hdmm.matrix import EkteloMatrix, Identity, Ones, VStack, Kronecker, Product, Sum
+from hdmm.matrix import EkteloMatrix, Identity, Ones, VStack, Kronecker, Product, Sum, Weighted
 import collections
 import itertools
 import numpy as np
@@ -215,7 +215,7 @@ class Marginal(Kronecker):
     def binary(self):
         i = self.key
         d = len(self.domain)
-        return tuple([int(bool(2**k & i)) for k in range(d)])
+        return tuple([int(bool(2**k & i)) for k in range(d)])[::-1]
 
     def tuple(self):
         binary = self.binary()
@@ -224,8 +224,8 @@ class Marginal(Kronecker):
 
     @staticmethod
     def frombinary(domain, binary):
-        d = len(self.domain)
-        key = sum(binary[k]*2**k for k in range(d))
+        d = len(domain)
+        key = sum(binary[k]*2**(d-k-1) for k in range(d))
         return Marginal(domain, key)
 
     @staticmethod
@@ -245,30 +245,24 @@ class Marginals(VStack):
     def gram(self):
         return MarginalsGram(self.domain, self.weights**2)
    
-    def inv(self):
-        return self.gram().inv() * self.T
- 
     def pinv(self):
         # note: this is a generalized inverse, not necessarily the pseudo inverse though
         return self.gram().pinv() * self.T
 
     @staticmethod 
     def frombinary(domain, weights):
-        d = len(domain)
-        vect = np.zeros(2**d)
+        vect = np.zeros(2**len(domain))
         for binary, wgt in weights.items():
-            key = sum(binary[k]*2**k for k in range(d))
-            vect[key] = wgt
+            M = Marginal.frombinary(domain, binary)
+            vect[M.key] = wgt
         return Marginals(domain, vect)
 
     @staticmethod
     def fromtuples(domain, weights):
-        d = len(domain)
-        vect = np.zeros(2**d)
+        vect = np.zeros(2**len(domain))
         for tpl, wgt in weights.items():
-            binary = [1 if i in attrs else 0 for i in range(len(domain))]
-            key = sum(binary[k]*2**k for k in range(d))
-            vect[key] = wgt
+            M = Marginal.fromtuple(domain, tpl)
+            vect[M.key] = wgt
         return Marginals(domain, vect)
    
     @staticmethod
@@ -280,20 +274,8 @@ class Marginals(VStack):
         M is the returned marginals approximation of W.
         The other guarantee is that this function is idempotent: approx(approx(W)) = approx(W)
         """
-        if isinstance(W, matrix.Kronecker):
-            W = matrix.VStack([W])
-        assert isinstance(W, matrix.VStack) and isinstance(W.matrices[0], matrix.Kronecker)
-        dom = tuple(Wi.shape[1] for Wi in W.matrices[0].matrices)
-        weights = np.zeros(2**len(dom))
-        for sub in W.matrices:
-            tmp = []
-            for n, piece in zip(dom, sub.matrices):
-                X = piece.gram().dense_matrix()
-                b = float(X.sum() - X.trace()) / (n * (n-1))
-                a = float(X.trace()) / n - b
-                tmp.append(np.array([b,a]))
-            weights += reduce(np.kron, tmp)
-        return Marginals(dom, np.sqrt(weights))
+        WtW = MarginalsGram.approximate(W.gram())
+        return Marginals(WtW.domain, np.sqrt(WtW.weights))
        
 class MarginalsGram(Sum):
     def __init__(self, domain, weights):
@@ -342,6 +324,19 @@ class MarginalsGram(Sum):
         XT = sparse.csr_matrix((values, (cols, rows)), (2**d, 2**d))
         return X, XT
 
+    def __mul__(self, other):
+        if isinstance(other, MarginalsGram) and self.domain == other.domain:
+            X, XT = self._Xmatrix(self.weights)
+            vect = X.dot(other.weights)
+            return MarginalsGram(self.domain, vect)
+        elif isinstance(other, Sum):
+            other = MarginalsGram.approximate(other)
+            X, XT = self._Xmatrix(self.weights)
+            vect = X.dot(other.weights)
+            return MarginalsGram(self.domain, vect)
+        else:
+            return EkteloMatrix.__mul__(self, other)
+
     def inv(self):
         assert self.weights[-1] != 0, 'matrix is not invertible'
         X, _ = self._Xmatrix(self.weights)
@@ -357,6 +352,24 @@ class MarginalsGram(Sum):
         phi = spsolve_triangular(X, self.weights, lower=False)
         return MarginalsGram(self.domain, phi)
 
+    @staticmethod
+    def approximate(WtW):
+        """
+        Given a Sum-of-Kron matrix, find a MarginalsGram object that approximates it.
+        """
+        WtW = sum_kron_canonical(WtW)
+        dom = tuple(Wi.shape[1] for Wi in WtW.matrices[0].base.matrices)
+        weights = np.zeros(2**len(dom))
+        for sub in WtW.matrices:
+            tmp = []
+            for n, piece in zip(dom, sub.base.matrices):
+                X = piece.dense_matrix()
+                b = float(X.sum() - X.trace()) / (n * (n-1))
+                a = float(X.trace()) / n - b
+                tmp.append(np.array([b,a]))
+            weights += sub.weight * reduce(np.kron, tmp)
+        return MarginalsGram(dom, weights)
+ 
 class AllNormK(EkteloMatrix):
     def __init__(self, n, norms):
         """
@@ -467,3 +480,28 @@ def Range2D(n):
 def Prefix2D(n):
     return Kronecker([Prefix(n), Prefix(n)]) 
 
+def union_kron_canonical(W):
+    if isinstance(W, Kronecker):
+        return VStack([1.0 * W])
+    elif isinstance(W, Weighted) and isinstance(W.base, Kronecker):
+        return VStack([W])
+    elif isinstance(W, VStack):
+        return VStack([1.0 * X for X in W.matrices])
+    elif isinstance(W, Weighted) and isinstance(W.base, VStack):
+        c = W.weight
+        return VStack([c * X for X in W.base.matrices])
+    else:
+        raise ValueError('Input format not recognized')
+
+def sum_kron_canonical(WtW):
+    if isinstance(WtW, Kronecker):
+        return Sum([1.0 * WtW])
+    elif isinstance(WtW, Weighted) and isinstance(WtW.base, Kronecker):
+        return Sum([WtW])
+    elif isinstance(WtW, Sum):
+        return Sum([1.0 * X for X in WtW.matrices])
+    elif isinstance(WtW, Weighted) and isinstance(WtW.base, Sum):
+        c = WtW.weight
+        return Sum([c * X for X in WtW.base.matrices])
+    else:
+        raise ValueError('Input format not recognized')
