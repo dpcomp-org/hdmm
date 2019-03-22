@@ -425,6 +425,25 @@ class Marginals(TemplateStrategy):
         dtheta = 2*theta*dtheta2
         return delta*ans, delta*dtheta + ddelta*ans
 
+    def optimize(self, W):
+        res = TemplateStrategy.optimize(self, W)
+
+        weights = self.workload.weight_vector()
+        theta2 = self.theta**2
+        Y = self._Xmatrix(theta2)[0]
+        params = Y.dot(theta2)
+        X = self._Xmatrix(params)[0]
+        phi = spsolve_triangular(X, theta2, lower=False)
+
+        M = self._Xmatrix(self._Xmatrix(phi)[0].dot(theta2))[0]
+        if not np.allclose(weights, M.dot(weights)):
+            print('Workload not supported by strategy')
+            res['loss'] = np.inf
+
+        return res
+
+        
+
 # (df / dtheta_k) = sum_ij (df / d_Aij) (dA_ij / theta_k)
   
 def KronPIdentity(ns, ps):

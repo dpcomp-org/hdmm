@@ -492,6 +492,7 @@ class Marginals(Concat):
         M = Xmatrix(Xmatrix(phi).dot(theta2))
         if not np.allclose(weights, M.dot(weights)):
             print('Workload not supported by strategy')
+            return np.inf
 
         ans = np.prod(dom) * np.dot(phi, dphi)
         var = 2.0 / eps**2
