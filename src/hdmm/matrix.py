@@ -57,7 +57,7 @@ class EkteloMatrix(LinearOperator):
         return EkteloMatrix(np.linalg.pinv(self.dense_matrix()))
 
     def trace(self):
-        return np.trace(self.dense_matrix())
+        return self.diag().sum()
 
     def diag(self):
         return np.diag(self.dense_matrix())
@@ -262,16 +262,31 @@ class Sum(EkteloMatrix):
             return Sum([Q @ other for Q in self.matrices]) # should use others rmul though
         return EkteloMatrix.__mul__(self, other)
 
-    def trace(self):
-        # only if Q are positive semidefinite...
-        # TODO: might b e better to have diag function
-        return sum(Q.trace() for Q in self.matrices)
-    
+    def diag(self):
+        return sum(Q.diag() for Q in self.matrices)
+
     @property
     def matrix(self):
         if _any_sparse(self.matrices):
             return sum(Q.sparse_matrix() for Q in self.matrices)
         return sum(Q.dense_matrix() for Q in self.matrices)
+
+class BlockDiag(EkteloMatrix):
+    def __init__(self, matrices):
+        self.matrices = matrices
+        rows = sum(Q.shape[0] for Q in matrices)
+        cols = sum(Q.shape[1] for Q in matrices)
+        self.shape = (rows, cols)
+        self.dtype = np.result_type(*[Q.dtype for Q in matrices])
+
+    # TODO: implement _matmat
+
+    def diag(self):
+        return np.concatenate([Q.diag() for Q in self.matrices])
+
+    @property
+    def matrix(self):
+        return sparse.block_diag([Q.matrix for Q in self.matrices], format='csr')
 
 class VStack(EkteloMatrix):
     def __init__(self, matrices):
@@ -289,7 +304,9 @@ class VStack(EkteloMatrix):
         return HStack([Q.T for Q in self.matrices])
     
     def __mul__(self, other):
-        if isinstance(other,EkteloMatrix):
+        if isinstance(other, HStack):
+            return BlockDiag([A @ B for A,B in zip(self.matrices, other.matrices)])
+        elif isinstance(other,EkteloMatrix):
             return VStack([Q @ other for Q in self.matrices]) # should use others rmul though
         return EkteloMatrix.__mul__(self, other)
 
@@ -352,6 +369,11 @@ class HStack(EkteloMatrix):
             return Sum([A @ B for A,B in zip(self.matrices, other.matrices)])
         return EkteloMatrix.__mul__(self, other)
 
+    def __rmul__(self, other):
+        if isinstance(other, EkteloMatrix):
+            return HStack([other @ Q for Q in self.matrices])
+        return EkteloMatrix.__mul__(self, other)
+
     def __abs__(self):
         return HStack([Q.__abs__() for Q in self.matrices])
 
@@ -399,6 +421,9 @@ class Kronecker(EkteloMatrix):
     def pinv(self):
         return Kronecker([Q.pinv() for Q in self.matrices])
 
+    def diag(self):
+        return reduce(np.kron, [Q.diag() for Q in self.matrices])
+
     def trace(self):
         return np.prod([Q.trace() for Q in self.matrices])
     
@@ -406,6 +431,8 @@ class Kronecker(EkteloMatrix):
         # perform the multiplication in the implicit representation if possible
         if isinstance(other, Kronecker):
             return Kronecker([A @ B for A,B in zip(self.matrices, other.matrices)])
+        elif isinstance(other, HStack):
+            return other.__rmul__(self)
         return EkteloMatrix.__mul__(self, other)
  
     def __abs__(self):

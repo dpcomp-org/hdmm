@@ -10,7 +10,10 @@ class TemplateStrategy:
 
     def strategy(self):
         pass
-   
+  
+    def _AtA1(self):
+        return self.strategy().gram().pinv().dense_matrix()
+ 
     def _loss_and_grad(self, params):
         pass
 
@@ -81,6 +84,12 @@ class PIdentity(TemplateStrategy):
         I = sparse.eye(self.n, format='csr')
         A = sparse.vstack([I, B], format='csr')
         return matrix.EkteloMatrix(A / A.sum(axis=0))
+
+    def _AtA1(self):
+        B = np.reshape(self._params, (self.p,self.n))
+        scale = 1.0 + np.sum(B, axis=0)
+        R = np.linalg.inv(np.eye(self.p) + B @ B.T) # O(k^3)
+        return (np.eye(self.n) - B.T @ R @ B)*scale*scale[:,None]
  
     def _set_workload(self, W):
         self._WtW = W.gram().dense_matrix()
@@ -138,13 +147,18 @@ class AugmentedIdentity(TemplateStrategy):
         self._pid._params = B.flatten()
         return self._pid.strategy()
 
+    def _AtA1(self):
+        params = np.append(0, self._params)
+        B = params[self._imatrix]
+        self._pid._params = B.flatten()
+        return self._pid._AtA1()
+
     def _loss_and_grad(self, params):
         params = np.append(0, params)
         B = params[self._imatrix]
         obj, grad = self._pid._loss_and_grad(B.flatten())
         grad2 = np.bincount(self._imatrix.flatten(), grad)[1:]
         return obj, grad2
-         
 
 class Static(TemplateStrategy):
     def __init__(self, strategy):
@@ -168,28 +182,38 @@ class Kronecker(TemplateStrategy):
             for subA, subW in zip(self._templates, W.matrices):
                 subA.optimize(subW)
             return
-        assert isinstance(W, matrix.VStack) and isinstance(W.matrices[0], matrix.Kronecker)
+
+        WtW = workload.sum_kron_canonical(W.gram())
+
+        workloads = [[Q.dense_matrix() for Q in K.base.matrices] for K in WtW.matrices]
+        weights = [K.weight for K in WtW.matrices]
         
-        workloads = [K.matrices for K in W.matrices] # a k x d table of workloads
         k = len(workloads)
         d = len(workloads[0])
         C = np.ones((d,k))
 
         for i in range(d):
             temp = self._templates[i]
+            # this won't exploit efficient psuedo inverse of pidentity
+            AtA1 = temp._AtA1()
             for j in range(k):
-                temp._set_workload(workloads[j][i])
-                C[i,j] = temp._loss_and_grad(temp._params)[0]
+                #W = workload.ExplicitGram(workloads[j][i])
+                #temp._set_workload(W)
+                #C[i,j] = temp._loss_and_grad(temp._params)[0]
+                C[i,j] = np.sum(workloads[j][i] * AtA1)
         for _ in range(10):
             #err = C.prod(axis=0).sum()
             for i in range(d):
                 temp = self._templates[i]
-                cs = np.sqrt(C.prod(axis=0) / C[i])
-                What = matrix.VStack([c*Ws[i] for c, Ws in zip(cs, workloads)])
+                cs = C.prod(axis=0) / C[i]
+                What = sum(c*WtWs[i] for c, WtWs in zip(cs, workloads))
+                What = workload.ExplicitGram(What)
                 temp.optimize(What)
+                AtA1 = temp._AtA1()
                 for j in range(k):
-                    temp._set_workload(workloads[j][i])
-                    C[i,j] = temp._loss_and_grad(temp._params)[0]
+                    #temp._set_workload(workloads[j][i])
+                    #C[i,j] = temp._loss_and_grad(temp._params)[0]
+                    C[i,j] = np.sum(workloads[j][i] * AtA1)
 
 class Union(TemplateStrategy):
     def __init__(self, templates):

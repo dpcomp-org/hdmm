@@ -1,16 +1,17 @@
 import numpy as np
-from workload import *
-import templates
-from examples.census_workloads import build_workload
+from hdmm.workload import *
+from hdmm import templates, error
+from census_workloads import build_workload
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 
 def opt_strategy(workload=None):
+    ns = [2,2,64,17,115]
     ps = [1, 1, 8, 1, 10]   # hard-coded parameters
-    template = templates.KronPIdentity(workload.domain, ps)
+    template = templates.KronPIdentity(ps, ns)
     template.optimize(workload)
-    return [sub.A for sub in template.strategies]
+    return template.strategy()
 
 
 
@@ -21,24 +22,24 @@ if __name__ == '__main__':
     full = include + exclude
 
     w_sf1_full = build_workload(full)
-    print('Query count, full', w_sf1_full.queries)
+    print('Query count, full', w_sf1_full.shape[0])
     a_sf1_full = opt_strategy(w_sf1_full)
 
     w_sf1_include = build_workload(include)
-    print('Query count, include', w_sf1_include.queries)
+    print('Query count, include', w_sf1_include.shape[0])
     a_sf1_include = opt_strategy(w_sf1_include)
 
     w_sf1_exclude = build_workload(exclude)
 
     # RMSE per query, under full strategy
-    err_w_full_a_full = w_sf1_full.per_query_rmse(strategy=a_sf1_full)
-    err_w_inc_a_full = w_sf1_include.per_query_rmse(strategy=a_sf1_full)
-    err_w_exc_a_full = w_sf1_exclude.per_query_rmse(strategy=a_sf1_full)
+    err_w_full_a_full = np.sqrt(error.per_query_error(w_sf1_full, a_sf1_full))
+    err_w_inc_a_full = np.sqrt(error.per_query_error(w_sf1_include, a_sf1_full))
+    err_w_exc_a_full = np.sqrt(error.per_query_error(w_sf1_exclude, a_sf1_full))
 
     # RMSE per query, under include strategy
-    err_w_full_a_inc = w_sf1_full.per_query_rmse(strategy=a_sf1_include)
-    err_w_inc_a_inc = w_sf1_include.per_query_rmse(strategy=a_sf1_include)
-    err_w_exc_a_inc = w_sf1_exclude.per_query_rmse(strategy=a_sf1_include)
+    err_w_full_a_inc = np.sqrt(error.per_query_error(w_sf1_full, a_sf1_include))
+    err_w_inc_a_inc = np.sqrt(error.per_query_error(w_sf1_include, a_sf1_include))
+    err_w_exc_a_inc = np.sqrt(error.per_query_error(w_sf1_exclude, a_sf1_include))
 
     print('strategy \t w_full \t w_include \t w_exclude')
     print(f'w_include \t {np.mean(err_w_full_a_inc):.4f} \t {np.mean(err_w_inc_a_inc):.4f} \t {np.mean(err_w_exc_a_inc):.4f}')
