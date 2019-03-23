@@ -34,6 +34,17 @@ class TemplateStrategy:
         res = optimize.minimize(self._loss_and_grad, init, jac=True, method='L-BFGS-B', bounds=bnds, options=opts)
         self._params = res.x
         
+    def restart_optimize(self, W, restarts):
+        best_A, best_loss = None, np.inf
+        for _ in range(restarts):
+            self.optimize(W)
+            A = self.strategy()
+            loss = error.rootmse(W, A)
+            if loss <= best_loss:
+                best_loss = loss
+                best_A = A
+        return best_A, best_loss
+
 class Default(TemplateStrategy):
     def __init__(self, m, n):
         self._params = np.random.rand(m*n)

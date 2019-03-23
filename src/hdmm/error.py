@@ -1,5 +1,6 @@
 import numpy as np
 from hdmm.matrix import EkteloMatrix
+from hdmm import workload
 
 def convert_implicit(A):
     if isinstance(A, EkteloMatrix):
@@ -14,7 +15,11 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     W, A = convert_implicit(W), convert_implicit(A)
     AtA1 = A.gram().pinv()
     WtW = W.gram()
-    X = WtW @ AtA1
+    # TODO(ryan): fix this hack
+    if isinstance(AtA1, workload.MarginalsGram):
+        X = AtA1 @ WtW
+    else:
+        X = WtW @ AtA1
     delta = A.sensitivity()
     trace = X.trace()
     var = 2.0 / eps**2

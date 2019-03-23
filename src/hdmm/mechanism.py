@@ -1,11 +1,20 @@
 import numpy as np
-import templates
-import workload
+from hdmm import templates, workload
 
-class ParametricMM:
+def get_domain(W):
+    if isinstance(W, workload.Kronecker):
+        return tuple(Q.shape[1] for Q in W.matrices)
+    elif isinstance(W, workload.Weighted):
+        return get_domain(W.base)
+    elif isinstance(W, workload.VStack):
+        return get_domain(W.matrices[0])
+    else:
+        return W.shape[1]
+
+class HDMM:
 
     def __init__(self, W, x, eps, seed=0):
-        self.domain = W.domain
+        self.domain = get_domain(W)
         self.W = W
         self.x = x
         self.eps = eps
@@ -13,30 +22,30 @@ class ParametricMM:
 
     def optimize(self, restarts = 25):
         W = self.W
-        if type(W.domain) is tuple: # kron or union kron workload
-            ns = W.domain
+        if type(self.domain) is tuple: # kron or union kron workload
+            ns = self.domain
 
             ps = [max(1, n//16) for n in ns]
-            kron = templates.KronPIdentity(ns, ps)
-            optk = kron.restart_optimize(W, restarts)
+            kron = templates.KronPIdentity(ps, ns)
+            optk, lossk = kron.restart_optimize(W, restarts)
 
             marg = templates.Marginals(ns)
-            optm = marg.restart_optimize(W, restarts)
+            optm, lossm = marg.restart_optimize(W, restarts)
 
             # multiplicative factor puts losses on same scale
-            if optk['loss'] < optm['loss']*np.prod(ns):
-                self.strategy = kron
+            if lossk <= lossm:
+                self.strategy = optk
             else:
-                self.strategy = marg
+                self.strategy = optm
         else:
-            n = W.domain
+            n = self.domain
             pid = templates.PIdentity(max(1, n//16), n)
-            optp = pid.restart_optimize(W, restarts)
-            self.strategy = pid
+            optp, loss = pid.restart_optimize(W, restarts)
+            self.strategy = optp
            
     def run(self):
-        A = self.strategy.strategy()
-        A1 = self.strategy.inverse()
+        A = self.strategy
+        A1 = A.pinv()
         delta = self.strategy.sensitivity()
         noise = self.prng.laplace(loc=0.0, scale=delta/self.eps, size=A.shape[0])
         self.ans = A.dot(self.x) + noise

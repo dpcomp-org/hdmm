@@ -352,6 +352,9 @@ class MarginalsGram(Sum):
         phi = spsolve_triangular(X, self.weights, lower=False)
         return MarginalsGram(self.domain, phi)
 
+    def trace(self):
+        return self.weights.sum() * self.shape[1]
+
     @staticmethod
     def approximate(WtW):
         """

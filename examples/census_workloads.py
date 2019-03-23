@@ -1,4 +1,4 @@
-from workload import *
+from hdmm.workload import *
 import itertools
 # Predicates for defining SF1 tables (Universe Persons)
 
@@ -9,7 +9,7 @@ def __race1():
     for i in range(6):
         race1[i, 2**i] = 1.0
     race1[6,:] = 1.0 - race1[0:6].sum(axis=0)
-    return Matrix(race1)
+    return EkteloMatrix(race1)
 
 def __race2():
     # all settings of race, k races for 1..6, two or more races
@@ -19,35 +19,35 @@ def __race2():
         ct = bin(i).count('1') # number of races
         race2[62+ct, i] = 1.0
     race2[63+6] = race2[64:63+6].sum(axis=0) # two or more races
-    return Matrix(race2) 
+    return EkteloMatrix(race2) 
 
 def __white():
     white = np.zeros((1, 64))
     white[0,1] = 1.0
-    return Matrix(white)
+    return EkteloMatrix(white)
 
 def __isHispanic():
-    return Matrix(np.array([[1,0]]))
+    return EkteloMatrix(np.array([[1,0]]))
 
 def __notHispanic():
-    return Matrix(np.array([[0,1]]))
+    return EkteloMatrix(np.array([[0,1]]))
 
 def __adult():
     adult = np.zeros((1, 115))
     adult[0, 18:] = 1.0
-    return Matrix(adult)
+    return EkteloMatrix(adult)
 
 def __age1():
     ranges = [0, 5, 10, 15, 18, 20, 21, 22, 25, 30, 35, 40, 45, 50, 55, 60, 62, 65, 67, 70, 75, 80, 85, 115]
     age1 = np.zeros((len(ranges)-1, 115))
     for i in range(age1.shape[0]):
         age1[i, ranges[i]:ranges[i+1]] = 1.0
-    return Matrix(age1)
+    return EkteloMatrix(age1)
 
 def __age2():
     age2 = np.zeros((20, 115))
     age2[:20,:20] = np.eye(20)
-    return Matrix(age2)
+    return EkteloMatrix(age2)
 
 def __age3():
     # more range queries on age
@@ -56,43 +56,43 @@ def __age3():
     age3[100,100:105] = 1.0
     age3[101,105:110] = 1.0
     age3[102,110:] = 1.0
-    return Matrix(age3)
+    return EkteloMatrix(age3)
 
 # SF1 Table components (universe Persons)
 
-P1 = Kron([Total(2), Total(2), Total(64), Total(17), Total(115)])
-P3a = Kron([Total(2), Total(2), __race1(), Total(17), Total(115)])
+P1 = Kronecker([Total(2), Total(2), Total(64), Total(17), Total(115)])
+P3a = Kronecker([Total(2), Total(2), __race1(), Total(17), Total(115)])
 P3b = P1
-P4a = Kron([Total(2), Identity(2), Total(64), Total(17), Total(115)])
+P4a = Kronecker([Total(2), Identity(2), Total(64), Total(17), Total(115)])
 P4b = P1
-P5a = Kron([Total(2), Identity(2), __race1(), Total(17), Total(115)])
-P5b = Kron([Total(2), IdentityTotal(2), Total(64), Total(17), Total(115)])
-P8a = Kron([Total(2), Total(2), __race2(), Total(17), Total(115)])
+P5a = Kronecker([Total(2), Identity(2), __race1(), Total(17), Total(115)])
+P5b = Kronecker([Total(2), IdentityTotal(2), Total(64), Total(17), Total(115)])
+P8a = Kronecker([Total(2), Total(2), __race2(), Total(17), Total(115)])
 P8b = P1
-P9a = Kron([Total(2), Identity(2), Total(64), Total(17), Total(115)])
-P9b = Kron([Total(2), __notHispanic(), __race2(), Total(17), Total(115)])
+P9a = Kronecker([Total(2), Identity(2), Total(64), Total(17), Total(115)])
+P9b = Kronecker([Total(2), __notHispanic(), __race2(), Total(17), Total(115)])
 P9c = P1
-P10a = Kron([Total(2), Total(2), __race2(), Total(17), __adult()])
-P10b = Kron([Total(2), Total(2), Total(64), Total(17), __adult()])
-P11a = Kron([Total(2), Identity(2), Total(64), Total(17), __adult()])
-P11b = Kron([Total(2), __notHispanic(), __race2(), Total(17), __adult()])
+P10a = Kronecker([Total(2), Total(2), __race2(), Total(17), __adult()])
+P10b = Kronecker([Total(2), Total(2), Total(64), Total(17), __adult()])
+P11a = Kronecker([Total(2), Identity(2), Total(64), Total(17), __adult()])
+P11b = Kronecker([Total(2), __notHispanic(), __race2(), Total(17), __adult()])
 P11c = P10b
-P12a = Kron([Identity(2), Total(2), Total(64), Total(17), __age1()])
-P12b = Kron([IdentityTotal(2), Total(2), Total(64), Total(17), Total(115)])
-P12_a = Kron([Identity(2), Total(2), __race1(), Total(17), __age1()])
-P12_b = Kron([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
-P12_c = Kron([Identity(2), __isHispanic(), Total(64), Total(17), __age1()])
-P12_d = Kron([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
-P12_e = Kron([Identity(2), __notHispanic(), __white(), Total(17), __age1()])
-P12_f = Kron([IdentityTotal(2), __notHispanic(), __white(), Total(17), Total(115)])
-PCT12a = Kron([Identity(2), Total(2), Total(64), Total(17), __age3()])
+P12a = Kronecker([Identity(2), Total(2), Total(64), Total(17), __age1()])
+P12b = Kronecker([IdentityTotal(2), Total(2), Total(64), Total(17), Total(115)])
+P12_a = Kronecker([Identity(2), Total(2), __race1(), Total(17), __age1()])
+P12_b = Kronecker([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
+P12_c = Kronecker([Identity(2), __isHispanic(), Total(64), Total(17), __age1()])
+P12_d = Kronecker([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
+P12_e = Kronecker([Identity(2), __notHispanic(), __white(), Total(17), __age1()])
+P12_f = Kronecker([IdentityTotal(2), __notHispanic(), __white(), Total(17), Total(115)])
+PCT12a = Kronecker([Identity(2), Total(2), Total(64), Total(17), __age3()])
 PCT12b = P12b
-PCT12_a = Kron([Identity(2), Total(2), __race1(), Total(17), __age3()])
-PCT12_b = Kron([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
-PCT12_c = Kron([Identity(2), __isHispanic(), Total(64), Total(17), __age3()])
-PCT12_d = Kron([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
-PCT12_e = Kron([Identity(2), __notHispanic(), __race1(), Total(17), __age3()])
-PCT12_f = Kron([IdentityTotal(2), __notHispanic(), __race1(), Total(17), Total(115)])
+PCT12_a = Kronecker([Identity(2), Total(2), __race1(), Total(17), __age3()])
+PCT12_b = Kronecker([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
+PCT12_c = Kronecker([Identity(2), __isHispanic(), Total(64), Total(17), __age3()])
+PCT12_d = Kronecker([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
+PCT12_e = Kronecker([Identity(2), __notHispanic(), __race1(), Total(17), __age3()])
+PCT12_f = Kronecker([IdentityTotal(2), __notHispanic(), __race1(), Total(17), Total(115)])
 
 # dictionary for SF1 tables
 sf1 = {}
@@ -115,7 +115,7 @@ def build_workload(workload_keys):
     workloads = []
     for key in workload_keys:
         workloads.extend(sf1[key])
-    return Concat(workloads)
+    return VStack(workloads)
 
 
 def SF1_Persons():
