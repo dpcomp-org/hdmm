@@ -1,5 +1,5 @@
 import numpy as np
-from hdmm.matrix import EkteloMatrix
+from hdmm.matrix import EkteloMatrix, VStack
 from hdmm import workload
 
 def convert_implicit(A):
@@ -46,11 +46,14 @@ def average_error_ci(W, noises):
     pm = 1.96 * np.std(samples) / np.sqrt(len(samples))
     return (avg-pm, avg+pm)
 
-def per_query_error(W, A, eps=np.sqrt(2), delta=0):
+def per_query_error(W, A, eps=np.sqrt(2), delta=0, normalize=False):
     W, A = convert_implicit(W), convert_implicit(A)
+    if isinstance(W, VStack):
+        return np.concatenate([per_query_error(Q, A, eps, delta, normalize) for Q in W.matrices])
     delta = A.sensitivity()
     var = 2.0/eps**2
     AtA1 = A.gram().pinv()
     X = W @ AtA1 @ W.T
     err = X.diag()
-    return var * delta**2 * err
+    answer = var * delta**2 * err
+    return np.sqrt(answer) if normalize else answer

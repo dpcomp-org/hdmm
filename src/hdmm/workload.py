@@ -374,7 +374,7 @@ class MarginalsGram(Sum):
         return MarginalsGram(dom, weights)
  
 class AllNormK(EkteloMatrix):
-    def __init__(self, n, norms):
+    def __init__(self, n, norms, dtype=np.float64):
         """
         All predicate queries that sum k elements of the domain
         :param n: The domain size
@@ -386,6 +386,7 @@ class AllNormK(EkteloMatrix):
         self.norms = norms
         self.m = int(sum(utility.nCr(n, k) for k in norms))
         self.shape = (self.m, self.n)
+        self.dtype = dtype
 
     @property
     def matrix(self):

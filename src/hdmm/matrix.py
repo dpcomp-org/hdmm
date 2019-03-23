@@ -304,9 +304,9 @@ class VStack(EkteloMatrix):
         return HStack([Q.T for Q in self.matrices])
     
     def __mul__(self, other):
-        if isinstance(other, HStack):
-            return BlockDiag([A @ B for A,B in zip(self.matrices, other.matrices)])
-        elif isinstance(other,EkteloMatrix):
+        #if isinstance(other, HStack):
+        #    return BlockDiag([A @ B for A,B in zip(self.matrices, other.matrices)])
+        if isinstance(other,EkteloMatrix):
             return VStack([Q @ other for Q in self.matrices]) # should use others rmul though
         return EkteloMatrix.__mul__(self, other)
 
