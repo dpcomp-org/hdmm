@@ -111,7 +111,8 @@ class PIdentity(TemplateStrategy):
 
         B = np.reshape(params, (p,n))
         scale = 1.0 + np.sum(B, axis=0)
-        R = np.linalg.inv(np.eye(p) + B.dot(B.T)) # O(k^3)
+        try: R = np.linalg.inv(np.eye(p) + B.dot(B.T)) # O(k^3)
+        except: return np.inf, np.zeros_like(params)
         C = WtW * scale * scale[:,None] # O(n^2)
         M1 = R.dot(B) # O(n k^2)
         M2 = M1.dot(C) # O(n^2 k)

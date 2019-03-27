@@ -98,6 +98,5 @@ class TestMatrix(unittest.TestCase):
             if not isinstance(Q, workload.Marginals):
                 np.testing.assert_allclose(A @ A1 @ A, A, atol=1e-7)
 
-
 if __name__ == '__main__':
     unittest.main()
