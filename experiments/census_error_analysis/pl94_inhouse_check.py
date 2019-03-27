@@ -57,26 +57,29 @@ def __numraces():
         numraces[ct-1, i-1] = 1.0
     return EkteloMatrix(numraces)
 
-cenrace = Kronecker([Total(2), Total(2), Identity(63), Total(8)])
-gqlevels = Kronecker([Total(2), Total(2), Total(63), __gqlevel()])
-hispanic = Kronecker([Identity(2), Total(2), Total(63), Total(8)])
-hispanic_cenrace = Kronecker([Identity(2), Total(2), Identity(63), Total(8)])
-hispanic_numraces = Kronecker([Identity(2), Total(2), __numraces(), Total(8)])
-household = Kronecker([Total(2), Total(2), Total(63), __household()])
-institutionlized = Kronecker([Total(2), Total(2), Total(63), __institutionalized()])
-numraces = Kronecker([Total(2), Total(2), __numraces(), Total(8)])
-total = Kronecker([Total(2), Total(2), Total(63), Total(8)])
-votingage = Kronecker([Total(2), Identity(2), Total(63), Total(8)])
-votingage_cenrace = Kronecker([Total(2), Identity(2), Identity(63), Total(8)])
-votingage_hispanic = Kronecker([Identity(2), Identity(2), Total(63), Total(8)])
-votingage_hispanic_cenrace = Kronecker([Identity(2), Identity(2), Identity(63), Total(8)])
-votingage_hispanic_numraces = Kronecker([Identity(2), Identity(2), __numraces(), Total(8)])
-votingage_numraces = Kronecker([Total(2), Identity(2), __numraces(), Total(8)])
+def pl94_workload():
+    cenrace = Kronecker([Total(2), Total(2), Identity(63), Total(8)])
+    gqlevels = Kronecker([Total(2), Total(2), Total(63), __gqlevel()])
+    hispanic = Kronecker([Identity(2), Total(2), Total(63), Total(8)])
+    hispanic_cenrace = Kronecker([Identity(2), Total(2), Identity(63), Total(8)])
+    hispanic_numraces = Kronecker([Identity(2), Total(2), __numraces(), Total(8)])
+    household = Kronecker([Total(2), Total(2), Total(63), __household()])
+    institutionlized = Kronecker([Total(2), Total(2), Total(63), __institutionalized()])
+    numraces = Kronecker([Total(2), Total(2), __numraces(), Total(8)])
+    total = Kronecker([Total(2), Total(2), Total(63), Total(8)])
+    votingage = Kronecker([Total(2), Identity(2), Total(63), Total(8)])
+    votingage_cenrace = Kronecker([Total(2), Identity(2), Identity(63), Total(8)])
+    votingage_hispanic = Kronecker([Identity(2), Identity(2), Total(63), Total(8)])
+    votingage_hispanic_cenrace = Kronecker([Identity(2), Identity(2), Identity(63), Total(8)])
+    votingage_hispanic_numraces = Kronecker([Identity(2), Identity(2), __numraces(), Total(8)])
+    votingage_numraces = Kronecker([Total(2), Identity(2), __numraces(), Total(8)])
 
 
-W = VStack([cenrace, gqlevels, hispanic, hispanic_cenrace, hispanic_numraces, household,
-        institutionlized, numraces, total, votingage, votingage_cenrace, votingage_hispanic,
-        votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces])
+    W = VStack([cenrace, gqlevels, hispanic, hispanic_cenrace, hispanic_numraces, household,
+            institutionlized, numraces, total, votingage, votingage_cenrace, votingage_hispanic,
+            votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces])
+
+    return W
 
 def opt_p_identity(workload=None):
     ps = [1, 1, 8, 4]   # hard-coded parameters
@@ -102,10 +105,9 @@ def marginal_strategy(workload=None):
 
 if __name__ == '__main__':
 
-    print(W.shape)
+    W = pl94_workload()
 
-    from IPython import embed
-    #embed()
+    print(W.shape)
 
     A = opt_p_identity(workload=W)
     err = error.rootmse(W, A)
