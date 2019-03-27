@@ -282,16 +282,12 @@ class MarginalsGram(Sum):
         self.domain = domain
         self.weights = weights
         subs = []
+        n, d = np.prod(domain), len(domain)
+        mult = np.ones(2**d)
         for key, wgt in enumerate(weights):
             Q = Marginal(domain, key)
+            mult[key] = n / Q.shape[0]
             if wgt != 0: subs.append(wgt * Q.gram())
-
-        d = len(domain)
-        mult = np.ones(2**d)
-        for i in range(2**d):
-            for k in range(d):
-                if not (i & (2**k)):
-                    mult[i] *= domain[k]
         self._mult = mult
 
         Sum.__init__(self, subs)

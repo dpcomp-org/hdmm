@@ -104,6 +104,9 @@ if __name__ == '__main__':
 
     print(W.shape)
 
+    from IPython import embed
+    #embed()
+
     A = opt_p_identity(workload=W)
     err = error.rootmse(W, A)
     print('KroneckerPIdentity', err)
