@@ -17,9 +17,8 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     WtW = W.gram()
     # TODO(ryan): fix this hack
     if isinstance(AtA1, workload.MarginalsGram):
-        X = AtA1 @ WtW
-    else:
-        X = WtW @ AtA1
+        WtW = workload.MarginalsGram.approximate(WtW)
+    X = WtW @ AtA1
     delta = A.sensitivity()
     trace = X.trace()
     var = 2.0 / eps**2

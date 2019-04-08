@@ -53,6 +53,7 @@ class TestGradients(unittest.TestCase):
         #self.assertTrue(err <= 1e-5)
 
     def test_marginals(self):
+        # full rank case
         W = workload.Range2D(4)
 
         temp = templates.Marginals((4,4))
@@ -67,7 +68,38 @@ class TestGradients(unittest.TestCase):
         print(err)
         self.assertTrue(err <= 1e-5)
 
+        # low rank case
+        P = workload.Prefix(4)
+        T = workload.Total(4)
+        W1 = workload.Kronecker([P,T])
+        W2 = workload.Kronecker([T,P])
+        W = workload.VStack([W1, W2])
 
+        temp = templates.Marginals((4,4))
+        temp._set_workload(W)
+        x0 = np.array([1,1,1,0.0])
+
+        func = lambda p: temp._loss_and_grad(p)[0]
+        grad = lambda p: temp._loss_and_grad(p)[1]
+
+        f, g = func(x0), grad(x0)
+        g2 = np.zeros(4)
+        for i in range(4):
+            x0[i] -= 0.001
+            f1 = func(x0)
+            x0[i] += 0.002
+            f2 = func(x0)
+            x0[i] -= 0.001
+            g2[i] = (f2 - f1) / 0.002 
+
+
+        print(g)
+        print(g2)
+
+        np.testing.assert_allclose(g, g2, atol=1e-5)
+        #err = check_grad(func, grad, x0)
+        #print(err)
+        #self.assertTrue(err <= 1e-5)
 
 if __name__ == '__main__':
     unittest.main()

@@ -39,20 +39,39 @@ class TestMarginals(unittest.TestCase):
         M2 = MarginalsGram.approximate(M1)
         np.testing.assert_allclose(M1.weights, M2.weights) 
 
+    def test_commutativity(self):
+        M1 = Marginals(self.domain, self.prng.rand(8))
+        M2 = Marginals(self.domain, self.prng.rand(8))
+        
+        MtM1 = M1.gram()
+        MtM2 = M2.gram().ginv()
+
+        X = MtM1 @ MtM2
+        Y = MtM2 @ MtM1
+        np.testing.assert_allclose(X.weights, Y.weights)
+        np.testing.assert_allclose(X.dense_matrix(), Y.dense_matrix())
+        
+
     def test_pinv(self):
-        A = MarginalsGram(self.domain,  self.prng.rand(8))
-        B = A.pinv()
 
-        self.check_equal(A @ B @ A, A)
+        rand = lambda n: (self.prng.rand(n) <= 0.5).astype(float)
 
-        w = self.prng.rand(8)
+        for _ in range(10):
+            A = MarginalsGram(self.domain,  rand(8))
+            B = A.ginv()
+            #C = A.pinv()
+            np.testing.assert_allclose( (A @ B @ A).weights, A.weights, atol = 1e-10)
+            #self.check_equal(A @ B @ A, A)
+            #self.check_equal(A @ C @ A, A)
+
+        w = rand(8)
         w[-1] = 0  
         w = np.array([0.0,0.0,0.0,1.0,0.0,1.0,1.0,0])
         A = MarginalsGram(self.domain,  w)
-        B = A.pinv()
+        B = A.ginv()
         self.check_equal(A @ B @ A, A)
 
-        A = Marginals(self.domain, self.prng.rand(8))
+        A = Marginals(self.domain, rand(8))
         B = A.pinv()
         self.check_equal(A @ B @ A, A)
 

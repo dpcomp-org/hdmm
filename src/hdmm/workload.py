@@ -244,10 +244,9 @@ class Marginals(VStack):
 
     def gram(self):
         return MarginalsGram(self.domain, self.weights**2)
-   
+  
     def pinv(self):
-        # note: this is a generalized inverse, not necessarily the pseudo inverse though
-        return self.gram().pinv() * self.T
+        return self.gram().ginv() * self.T
 
     @staticmethod 
     def frombinary(domain, weights):
@@ -311,8 +310,8 @@ class MarginalsGram(Sum):
             mask[uniq] = np.arange(step)
             rev = mask[A&b]
             values[start:start+step] = np.bincount(rev, vect*mult[A|b], step)
-            if values[start+step-1] == 0:
-                values[start+step-1] = 1.0 # hack to make solve triangular work
+            #if values[start+step-1] == 0:
+            #    values[start+step-1] = 1.0 # hack to make solve triangular work
             cols[start:start+step] = b
             rows[start:start+step] = uniq
             start += step
@@ -325,11 +324,11 @@ class MarginalsGram(Sum):
             X, XT = self._Xmatrix(self.weights)
             vect = X.dot(other.weights)
             return MarginalsGram(self.domain, vect)
-        elif isinstance(other, Sum):
-            other = MarginalsGram.approximate(other)
-            X, XT = self._Xmatrix(self.weights)
-            vect = X.dot(other.weights)
-            return MarginalsGram(self.domain, vect)
+        #elif isinstance(other, Sum):
+        #    other = MarginalsGram.approximate(other)
+        #    X, XT = self._Xmatrix(self.weights)
+        #    vect = X.dot(other.weights)
+        #    return MarginalsGram(self.domain, vect)
         else:
             return EkteloMatrix.__mul__(self, other)
 
@@ -341,12 +340,25 @@ class MarginalsGram(Sum):
         phi = spsolve_triangular(X, z, lower=False)
         return MarginalsGram(self.domain, phi)
 
+    def ginv(self):
+        w = self.weights
+        X, _ = self._Xmatrix(w)
+        idx = X.dot(np.ones(w.size)) != 0
+        X = X[idx,:][:,idx] # to make solve_triangular work
+        phi = spsolve_triangular(X, w[idx], lower=False)
+        phi = spsolve_triangular(X, phi, lower=False)
+        ans = np.zeros(w.size)
+        ans[idx] = phi
+        return MarginalsGram(self.domain, ans)
+
     def pinv(self):
-        Y, _ = self._Xmatrix(self.weights)
-        params = Y.dot(self.weights)
-        X, _ = self._Xmatrix(params)
-        phi = spsolve_triangular(X, self.weights, lower=False)
-        return MarginalsGram(self.domain, phi)
+        return self.ginv()
+        #raise NotImplementedError('MarginalsGram.pinv not implemented, use ginv instead')
+        #w = self.weights
+        #X = self._Xmatrix(w)[0].toarray()
+        #X1 = np.linalg.pinv(X)
+        #ans = X1 @ X1 @ w
+        #return MarginalsGram(self.domain, ans)
 
     def trace(self):
         return self.weights.sum() * self.shape[1]

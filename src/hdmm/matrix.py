@@ -99,10 +99,10 @@ class EkteloMatrix(LinearOperator):
         :return: a 1xN EkteloMatrix
         """
         # row indexing, subclasses may provide more efficient implementation
-        m = self.shape[0]
+        m, n = self.shape
         v = np.zeros(m)
         v[key] = 1.0
-        return EkteloMatrix(self.T.dot(v).reshape(1, m))
+        return EkteloMatrix(self.T.dot(v).reshape(1, n))
     
     def dense_matrix(self):
         """
