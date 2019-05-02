@@ -1,4 +1,4 @@
-from ektelo.workload import EkteloMatrix, Identity, Total, VStack, Kronecker, IdentityTotal
+from hdmm.workload import EkteloMatrix, Identity, Total, VStack, Kronecker, IdentityTotal
 import itertools
 import numpy as np
 # Predicates for defining SF1 tables (Universe Persons)

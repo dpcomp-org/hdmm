@@ -1,5 +1,5 @@
-from ektelo.workload import Prefix, AllRange, WidthKRange
-from ektelo.hdmm.templates import YuanConvex
+from hdmm.workload import Prefix, AllRange, WidthKRange
+from hdmm.templates import YuanConvex
 import numpy as np
 
 base = '/home/ryan/Desktop/strategies'

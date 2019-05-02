@@ -1,11 +1,10 @@
 import benchmarks
-from ektelo import workload
+from hdmm import workload, templates
 import argparse
 import numpy as np
 import benchmarks
 import pickle
 import os
-from ektelo.hdmm import templates
 
 def get_domain(W):
     if isinstance(W, workload.VStack):

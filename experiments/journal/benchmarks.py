@@ -1,4 +1,4 @@
-from ektelo import matrix, workload
+from hdmm import matrix, workload
 import itertools
 from census_workloads import SF1_Persons
 

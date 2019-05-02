@@ -1,7 +1,7 @@
 import numpy as np
-from ektelo.workload import Identity, AllRange, Prefix, EkteloMatrix, WidthKRange
-from ektelo.hdmm.templates import PIdentity, YuanConvex
-from ektelo.hdmm import error
+from hdmm.workload import Identity, AllRange, Prefix, EkteloMatrix, WidthKRange
+from hdmm.templates import PIdentity, YuanConvex
+from hdmm import error
 from ektelo.client.selection import H2, Wavelet, HB, Wavelet, GreedyH, HDMM1D
 import pandas as pd
 
