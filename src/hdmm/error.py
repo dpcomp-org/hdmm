@@ -15,12 +15,14 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     W, A = convert_implicit(W), convert_implicit(A)
     AtA1 = A.gram().pinv()
     WtW = W.gram()
-    # TODO(ryan): fix this hack
     if isinstance(AtA1, workload.MarginalsGram):
         WtW = workload.MarginalsGram.approximate(WtW)
     X = WtW @ AtA1
     delta = A.sensitivity()
-    trace = X.trace()
+    if isinstance(X, workload.Sum):
+        trace = sum(Y.trace() for Y in X.matrices)
+    else:
+        trace = X.trace()
     var = 2.0 / eps**2
     return var * delta**2 * trace
 

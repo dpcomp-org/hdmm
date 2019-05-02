@@ -201,7 +201,7 @@ class Marginal(Kronecker):
         :param domain: a d-tuple containing the domain size of the d attributes
         :param key: a integer key 0 <= key < 2^d identifying the marginal
         """
-        self.domain = domain
+        self.domain = tuple(domain)
         self.key = key
         binary = self.binary()
         subs = []
@@ -324,11 +324,6 @@ class MarginalsGram(Sum):
             X, XT = self._Xmatrix(self.weights)
             vect = X.dot(other.weights)
             return MarginalsGram(self.domain, vect)
-        #elif isinstance(other, Sum):
-        #    other = MarginalsGram.approximate(other)
-        #    X, XT = self._Xmatrix(self.weights)
-        #    vect = X.dot(other.weights)
-        #    return MarginalsGram(self.domain, vect)
         else:
             return EkteloMatrix.__mul__(self, other)
 
