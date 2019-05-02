@@ -34,9 +34,9 @@ def SmallKrons(blocks, size=5000):
     concat = []
     for attr in powerset(range(d)):
         subs = [blocks[i] if i in attr else base[i] for i in range(d)]
-        size = reduce(lambda x,y: x*y, [blocks[i].shape[1] for i in attr], 1)
+        tmp = reduce(lambda x,y: x*y, [blocks[i].shape[1] for i in attr], 1)
         W = workload.Kronecker(subs)
-        if W.shape[1] <= size:
+        if tmp <= size:
             concat.append(W)
     return workload.VStack(concat)
 
