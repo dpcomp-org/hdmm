@@ -32,8 +32,8 @@ if __name__ == '__main__':
     formatter = argparse.ArgumentDefaultsHelpFormatter
     parser = argparse.ArgumentParser(description=description, formatter_class=formatter)
     parser.add_argument('--dataset', choices=['census','adult','loans'],help='dataset to use')
-    parser.add_argument('--workload', choices=[1,2], help='workload to use')
-    parser.add_argument('--approx', choice=[False,True], help='use approximate DP')
+    parser.add_argument('--workload', choices=[1,2], type=int, help='workload to use')
+    parser.add_argument('--approx', choices=[False,True], type=bool, help='use approximate DP')
     parser.add_argument('--output', help='path to save results')
 
     parser.set_defaults(**default_params())

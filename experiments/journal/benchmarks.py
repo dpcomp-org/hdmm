@@ -1,6 +1,7 @@
 from hdmm import matrix, workload
 import itertools
 from census_workloads import SF1_Persons
+from functools import reduce
 
 def get_workload(dataset, workload):
     if dataset == 'adult':
@@ -12,7 +13,7 @@ def get_workload(dataset, workload):
 
 def powerset(iterable):
     s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+    return itertools.chain.from_iterable(itertools.combinations(s, r) for r in range(len(s)+1))
 
 def DimKKrons(workloads, k=1):
     blocks = workloads
@@ -29,9 +30,11 @@ def DimKKrons(workloads, k=1):
 
 def SmallKrons(blocks, size=5000):
     base = [workload.Total(W.shape[1]) for W in blocks]
+    d = len(blocks)
     concat = []
-    for attr in powerset(range(len(blocks))):
+    for attr in powerset(range(d)):
         subs = [blocks[i] if i in attr else base[i] for i in range(d)]
+        size = reduce(lambda x,y: x*y, [blocks[i].shape[1] for i in attr], 1)
         W = workload.Kronecker(subs)
         if W.shape[1] <= size:
             concat.append(W)

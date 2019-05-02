@@ -1,4 +1,3 @@
-import mwem
 import sys
 import argparse
 import itertools
@@ -61,7 +60,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    commands = get_experiments()
+    commands, sbatch = get_experiments()
 
     if args.slurm:
         run_with_slurm(commands, sbatch)
