@@ -10,6 +10,8 @@ def get_workload(dataset, workload):
         return loans_big()[workload-1]
     if dataset == 'census':
         return census()[workload-1]
+    if dataset == 'cps':
+        return cps()[workload-1]
 
 def powerset(iterable):
     s = list(iterable)
@@ -61,16 +63,14 @@ def loans_big():
     return W1, W2
 
 def cps():
-    R = workload.AllRange
     P = workload.Prefix
     M = workload.IdentityTotal
-    I = workload.Identity
-    T = workload.Total
+    V = workload.VStack
 
-    W1 = workload.Kronecker([R(50), R(100), M(7), M(4), M(2)])
-    W2 = DimKKrons([R(50), R(100), I(7), I(4), I(2)], 2)
+    W1 = workload.Kronecker([M(50), M(100), M(7), M(4), M(2)])
+    W2 = workload.Kronecker([P(50), P(100), M(7), M(4), M(2)])
 
-    return W1, W2
+    return V([W1]), V([W2])
 
 def adult():
     R = workload.AllRange

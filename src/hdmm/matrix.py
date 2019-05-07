@@ -238,6 +238,9 @@ class Weighted(EkteloMatrix):
         
     def __sqr__(self):
         return Weighted(self.base.__sqr__(), self.weight**2)
+
+    def sensitivity(self):
+        return self.weight * self.base.sensitivity()
     
     @property
     def matrix(self):
