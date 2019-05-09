@@ -370,6 +370,43 @@ class Marginals(TemplateStrategy):
             dtheta = 2*theta*dtheta2
         return delta*ans, delta*dtheta + ddelta*ans
 
+class McKennaConvex(TemplateStrategy):
+    def __init__(self, n):
+        self.n = n
+
+    def strategy(self):
+        X = self._params.reshape(self.n, self.n)
+        A = np.linalg.cholesky(X).T
+        return matrix.EkteloMatrix(A)
+
+    def _set_workload(self, W):
+        self.V = W.gram().dense_matrix().astype(float)
+
+    def _loss_and_grad(self, params):
+        V = self.V
+        X = params.reshape(self.n, self.n)
+        try:
+            A = np.linalg.cholesky(X)
+            iX = np.linalg.inv(X)
+        except:
+            return self._loss*100, np.zeros_like(params)
+      
+        loss = np.sum(iX * V) 
+        G = -iX @ V @ iX
+        self._loss = loss
+        return loss, G.flatten() 
+
+    def optimize(self, W):
+        self._set_workload(W)
+
+        x = np.eye(self.n).flatten()
+        bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
+        
+        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B', bounds=bnds)
+        self._params = res.x
+        #print(res)
+        return res.fun       
+  
 class YuanConvex(TemplateStrategy):
 
     def __init__(self, seed=None):
