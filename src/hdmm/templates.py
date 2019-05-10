@@ -503,7 +503,7 @@ def OPT0(n, approx=False):
     temp1 = Identity(n)
     temp2 = Total(n)
     if approx:
-        temp3 = YuanConvex()
+        temp3 = McKennaConvex(n)
         return BestTemplate([temp1, temp2, temp3]) 
     else:
         p = max(n//16, 1)
