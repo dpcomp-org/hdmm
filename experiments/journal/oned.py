@@ -1,5 +1,5 @@
 import numpy as np
-from hdmm.workload import Identity, AllRange, Prefix, EkteloMatrix, WidthKRange
+from hdmm.workload import Identity, AllRange, Prefix, EkteloMatrix, WidthKRange, Permuted, AllNormK
 from hdmm.templates import PIdentity, YuanConvex
 from hdmm import error
 from ektelo.client.selection import H2, Wavelet, HB, Wavelet, GreedyH, HDMM1D
@@ -13,7 +13,7 @@ def rootmse(W, A):
     return np.sqrt(tse / W.shape[0])
 
 approx = True
-HDMM = 'YuanConvex' if approx else 'PIdentity'
+HDMM = 'OPT0' #'YuanConvex' if approx else 'PIdentity'
 if not approx:
     rootmse = error.rootmse
 
@@ -25,7 +25,8 @@ workloads = {}
 workloads['all-range'] = AllRange
 workloads['prefix'] = Prefix
 workloads['width32'] = lambda n: WidthKRange(n, 32)
-#workloads['permuted-range'] = lambda n: Permuted(AllRange(n))
+workloads['permuted'] = lambda n: Permuted(AllRange(n))
+workloads['norm32'] = lambda n: AllNormK(n, 32)
 
 idx = 0
 
@@ -38,7 +39,7 @@ for n in [128, 256, 512, 1024, 2048]:#, 4096, 8192]:
         A4 = HB((n,)).select()
         A5 = GreedyH((n,), W).select()
         if approx:
-            A6 = EkteloMatrix(np.load('%s/%s-%d-yuan.npy' % (base, workload, n)))
+            A6 = EkteloMatrix(np.load('%s/%s-%d-approx.npy' % (base, workload, n)))
         else:
             A6 = EkteloMatrix(np.load('%s/%s-%d.npy' % (base, workload, n)))
 
