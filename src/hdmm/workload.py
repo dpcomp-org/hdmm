@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
+from scipy.special import binom
 from functools import reduce
 
 def Total(n, dtype=np.float64):
@@ -194,6 +195,22 @@ class RangeQueries(Product):
 
     def unproject(self, offset, domain):
         return RangeQueries(domain, self._lower+np.array(offset), self._higher+np.array(offset))
+
+class Permuted(EkteloMatrix):
+    def __init__(self, base, seed=0):
+        self.base = base
+        prng = np.random.RandomState(seed)
+        self.idx = prng.permutation(base.shape[1])
+        self.shape = base.shape
+        self.dtype = base.dtype
+
+    @property
+    def matrix(self):
+        return self.base.dense_matrix()[:,self.idx]
+   
+    def gram(self):
+        WtW = self.base.gram().dense_matrix()
+        return EkteloMatrix(WtW[self.idx,:][:,self.idx])
 
 class Marginal(Kronecker):
     def __init__(self, domain, key):
@@ -393,7 +410,7 @@ class AllNormK(EkteloMatrix):
         if type(norms) is int:
             norms = [norms]
         self.norms = norms
-        self.m = int(sum(utility.nCr(n, k) for k in norms))
+        self.m = int(sum(binom(n, k) for k in norms))
         self.shape = (self.m, self.n)
         self.dtype = dtype
 
@@ -411,8 +428,8 @@ class AllNormK(EkteloMatrix):
         # WtW[i,i] = nCr(n-1, k-1) (1 for each query having q[i] = 1)
         # WtW[i,j] = nCr(n-2, k-2) (1 for each query having q[i] = q[j] = 1)
         n = self.n
-        diag = sum(utility.nCr(n-1, k-1) for k in self.norms)
-        off = sum(utility.nCr(n-2, k-2) for k in self.norms)
+        diag = sum(binom(n-1, k-1) for k in self.norms)
+        off = sum(binom(n-2, k-2) for k in self.norms)
         return off*Ones(n,n) + (diag-off)*Identity(n)
 
 class Disjuncts(Sum):

@@ -375,9 +375,9 @@ class McKennaConvex(TemplateStrategy):
         self.n = n
 
     def strategy(self):
-        X = self._params.reshape(self.n, self.n)
-        A = np.linalg.cholesky(X).T
-        return matrix.EkteloMatrix(A)
+        #X = self._params.reshape(self.n, self.n)
+        #A = np.linalg.cholesky(X).T
+        return matrix.EkteloMatrix(self._A)
 
     def _set_workload(self, W):
         self.V = W.gram().dense_matrix().astype(float)
@@ -386,7 +386,7 @@ class McKennaConvex(TemplateStrategy):
         V = self.V
         X = params.reshape(self.n, self.n)
         try:
-            A = np.linalg.cholesky(X)
+            A = np.linalg.cholesky(X).T
             iX = np.linalg.inv(X)
         except:
             return self._loss*100, np.zeros_like(params)
@@ -394,6 +394,7 @@ class McKennaConvex(TemplateStrategy):
         loss = np.sum(iX * V) 
         G = -iX @ V @ iX
         self._loss = loss
+        self._A = A
         return loss, G.flatten() 
 
     def optimize(self, W):
@@ -401,7 +402,7 @@ class McKennaConvex(TemplateStrategy):
 
         x = np.eye(self.n).flatten()
         bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
-        
+       
         res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B', bounds=bnds)
         self._params = res.x
         #print(res)
