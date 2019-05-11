@@ -2,14 +2,16 @@ import numpy as np
 from hdmm.workload import Identity, AllRange, Prefix, EkteloMatrix, WidthKRange, Permuted, AllNormK
 from hdmm.templates import PIdentity, YuanConvex
 from hdmm import error
-from ektelo.client.selection import H2, Wavelet, HB, Wavelet, GreedyH, HDMM1D
+from ektelo.client.selection import H2, Wavelet, HB, Wavelet, GreedyH
 import pandas as pd
+from IPython import embed
 
 def rootmse(W, A):
-    WtW = W.gram()
-    AtA = A.gram()
-    delta2 = AtA.diag().max()
-    tse = (WtW @ AtA.pinv()).trace() * delta2
+    WtW = W.gram().dense_matrix()
+    AtA = A.T.dot(A)
+    delta2 = np.diag(AtA).max()
+    #tse = (WtW @ AtA.pinv()).trace() * delta2
+    tse = np.trace(WtW @ np.linalg.inv(AtA)) * delta2
     return np.sqrt(tse / W.shape[0])
 
 approx = True
@@ -17,7 +19,7 @@ HDMM = 'OPT0' #'YuanConvex' if approx else 'PIdentity'
 if not approx:
     rootmse = error.rootmse
 
-base = '/home/ryan/Desktop/strategies'
+base = 'strategies'
 
 results = pd.DataFrame(columns=['domain', 'workload', 'Identity', 'H2', 'Wavelet', 'HB', 'GreedyH', HDMM, 'SVDB'])
 
@@ -30,7 +32,7 @@ workloads['norm32'] = lambda n: AllNormK(n, 32)
 
 idx = 0
 
-for n in [128, 256, 512, 1024, 2048]:#, 4096, 8192]:
+for n in [64, 128, 256, 512, 1024, 2048, 4096, 8192]:
     for workload, matrix in workloads.items():
         W = matrix(n)
         A1 = Identity(n)
@@ -49,6 +51,7 @@ for n in [128, 256, 512, 1024, 2048]:#, 4096, 8192]:
 
         row = [n, workload]
         for A in [A1, A2, A3, A4, A5, A6]:
+            A = A.dense_matrix()
             #row.append(error.rootmse(W, A))
             row.append(rootmse(W, A))
         row.append(svdb)
