@@ -414,11 +414,7 @@ class YuanConvex(TemplateStrategy):
         super(YuanConvex, self).__init__(seed)
 
     def optimize(self, W):
-        V = W.gram().dense_matrix().astype(float)
-        if np.linalg.matrix_rank(V) < V.shape[0]:
-            V += 1e-3 * np.eye(V.shape[0])
-        scale = V.mean()
-        V /= scale
+        V = W.gram().dense_matrix()
 
         accuracy = 1e-10
         max_iter_ls = 50
@@ -494,7 +490,7 @@ class YuanConvex(TemplateStrategy):
                 break
 
         self.ans = np.linalg.cholesky(X).T
-        return scale * fcurr
+        return fcurr
 
     def strategy(self):
         return matrix.EkteloMatrix(self.ans)
