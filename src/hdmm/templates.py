@@ -376,6 +376,7 @@ class McKennaConvex(TemplateStrategy):
         self.n = n
         self._mask = np.tri(n, dtype=bool, k=-1)
         self._params = np.zeros(n*(n-1)//2)
+        self.X = np.zeros((n,n))
 
     def strategy(self):
         tri = np.zeros((self.n,self.n))
@@ -390,7 +391,9 @@ class McKennaConvex(TemplateStrategy):
 
     def _loss_and_grad(self, params):
         V = self.V
-        X = np.zeros((self.n,self.n))
+        X = self.X
+        X.fill(0)
+        #X = np.zeros((self.n,self.n))
         X[self._mask] = params
         X += X.T
         np.fill_diagonal(X, 1)
@@ -423,8 +426,9 @@ class McKennaConvex(TemplateStrategy):
         #x = np.eye(self.n).flatten()
         #bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
         #x = self._params
-       
-        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B')
+      
+        opts = { 'maxcor' : 1 } 
+        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B', options=opts)
         self._params = res.x
         #print(res)
         return res.fun       
