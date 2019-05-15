@@ -414,6 +414,8 @@ class McKennaConvex(TemplateStrategy):
         self._set_workload(W)
 
         eig, P = np.linalg.eigh(self.V)
+        eig = np.real(eig)
+        eig[eig < 1e-10] = 0.0
         X = P @ np.diag(np.sqrt(eig)) @ P.T
         X /= np.diag(X).max()
         x = X[self._mask]
