@@ -4,6 +4,7 @@ import numpy as np
 from scipy import optimize
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
+from scipy.linalg.lapack import dpotrf, dpotri
 
 class TemplateStrategy:
 
@@ -373,37 +374,55 @@ class Marginals(TemplateStrategy):
 class McKennaConvex(TemplateStrategy):
     def __init__(self, n):
         self.n = n
+        self._mask = np.tri(n, dtype=bool, k=-1)
+        self._params = np.zeros(n*(n-1)//2)
 
     def strategy(self):
-        #X = self._params.reshape(self.n, self.n)
-        #A = np.linalg.cholesky(X).T
-        return matrix.EkteloMatrix(self._A)
+        tri = np.zeros((self.n,self.n))
+        tri[self._mask] = self._params
+        X = np.eye(self.n) + tri + tri.T
+        A = np.linalg.cholesky(X).T
+        return matrix.EkteloMatrix(A)
 
     def _set_workload(self, W):
         self.V = W.gram().dense_matrix().astype(float)
+        self.W = W
 
     def _loss_and_grad(self, params):
         V = self.V
-        X = params.reshape(self.n, self.n)
-        try:
-            A = np.linalg.cholesky(X).T
-            iX = np.linalg.inv(X)
-        except:
+        X = np.zeros((self.n,self.n))
+        X[self._mask] = params
+        X += X.T
+        np.fill_diagonal(X, 1)
+
+        zz, info0 = dpotrf(X, False, False)
+        iX, info1 = dpotri(zz)
+        iX = np.triu(iX) + np.triu(iX, k=1).T      
+        if info0 != 0 or info1 != 0:
+            #print('checkpt')
             return self._loss*100, np.zeros_like(params)
       
         loss = np.sum(iX * V) 
         G = -iX @ V @ iX
+        g = G[self._mask] + G.T[self._mask]
+
         self._loss = loss
-        self._A = A
-        return loss, G.flatten() 
+        #print(np.sqrt(loss / self.W.shape[0]))
+        return loss, g#G.flatten() 
 
     def optimize(self, W):
         self._set_workload(W)
 
-        x = np.eye(self.n).flatten()
-        bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
+        eig, P = np.linalg.eigh(self.V)
+        X = P @ np.diag(np.sqrt(eig)) @ P.T
+        X /= np.diag(X).max()
+        x = X[self._mask]
+
+        #x = np.eye(self.n).flatten()
+        #bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
+        #x = self._params
        
-        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B', bounds=bnds)
+        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B')
         self._params = res.x
         #print(res)
         return res.fun       
