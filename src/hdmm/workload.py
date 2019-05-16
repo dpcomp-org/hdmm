@@ -248,6 +248,9 @@ class Marginals(VStack):
     def pinv(self):
         return self.gram().ginv() * self.T
 
+    def sensitivity(self):
+        return self.weights.sum()
+
     @staticmethod 
     def frombinary(domain, weights):
         vect = np.zeros(2**len(domain))
@@ -278,7 +281,7 @@ class Marginals(VStack):
        
 class MarginalsGram(Sum):
     def __init__(self, domain, weights):
-        self.domain = domain
+        self.domain = tuple(domain)
         self.weights = weights
         subs = []
         n, d = np.prod(domain), len(domain)
