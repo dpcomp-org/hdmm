@@ -36,7 +36,7 @@ def squared_error(W, noise):
     """
     W = convert_implicit(W)
     WtW = W.gram()
-    return noisy.dot(WtW.dot(noise))
+    return noise.dot(WtW.dot(noise))
 
 def average_error_ci(W, noises):
     """
