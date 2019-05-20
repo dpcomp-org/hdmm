@@ -123,5 +123,5 @@ if __name__ == '__main__':
 
     ans = A.optimize(age)
     res = P.optimize(age)
-    print ans['loss'], res['loss']
+    print(ans['loss'], res['loss'])
     #embed()
