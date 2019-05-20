@@ -229,8 +229,11 @@ class Marginal(Kronecker):
         return Marginal(domain, key)
 
     @staticmethod
-    def fromtuple(domain, attrs):
-        binary = [1 if i in attrs else 0 for i in range(len(domain))]
+    def fromtuple(domain, attrs, columns=None):
+        if not columns:
+            binary = [1 if i in attrs else 0 for i in range(len(domain))]
+        else:
+            binary = [1 if i in attrs else 0 for i in columns]
         return Marginal.frombinary(domain, binary)
 
 class Marginals(VStack):
@@ -260,10 +263,10 @@ class Marginals(VStack):
         return Marginals(domain, vect)
 
     @staticmethod
-    def fromtuples(domain, weights):
+    def fromtuples(domain, weights, columns=None):
         vect = np.zeros(2**len(domain))
         for tpl, wgt in weights.items():
-            M = Marginal.fromtuple(domain, tpl)
+            M = Marginal.fromtuple(domain, tpl, columns)
             vect[M.key] = wgt
         return Marginals(domain, vect)
    
