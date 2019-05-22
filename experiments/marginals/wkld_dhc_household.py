@@ -1,5 +1,7 @@
 import pickle
-from hdmm import templates, error
+from hdmm import templates, error, workload
+from experiments.marginals import util
+import numpy as np
 
 '''
 
@@ -23,19 +25,44 @@ def dhc_household():
 
     file = open('dhc_household.pckl', 'rb')
     loaded = pickle.load(file)
-    return loaded['W'], loaded['domain'], loaded['attr']
+    return loaded['W'], loaded['domain']
 
 
-
-
+def summarize_strategy(W, A, domain):
+    for i in range(2**len(domain)):
+        if W.weights[i] > 0 or A._params[i] > 0:
+            print(
+                i,
+                util.marginal_index_repr(i,len(domain), join_string=' '),
+                W.weights[i] / sum(W.weights),  # normalized weights of workload
+                A._params[i] / sum(A._params)   # normalized weights of strategy
+            )
 
 
 if __name__ == '__main__':
 
-    W, domain, attr = dhc_household()
+    W, domain = dhc_household()
 
-    M = templates.Marginals(domain)
+    # Define strategies
+    A_marg = templates.Marginals(domain)
+    A_marg.optimize(W)
 
-    for i in range(10):
-        M.optimize(W)
-        print(error.rootmse(W, M.strategy(), eps=.1))
+    W_approx = workload.Marginals.approximate(W)
+
+    A_identity = templates.Marginals(domain)
+    A_identity._params = np.zeros(2**len(domain))
+    A_identity._params[-1] = 1.0
+
+    print('Num queries:', W.shape[0])
+    print('Sensitivity:', W.sensitivity())
+    print('Marg', '\t\t', f'{error.rootmse(W, A_marg.strategy()):10.3f}')
+    print('Ident', '\t\t', f'{error.rootmse(W, A_identity.strategy()):10.3f}')
+    print('W_approx', '\t', f'{error.rootmse(W, W_approx):10.3f}')
+
+    # summarize_strategy(W_approx, A_marg, domain)
+
+    print('')
+
+    for m in W.matrices:
+        print(m, '\t', error.rootmse(m, A_marg.strategy()))
+
