@@ -7,6 +7,9 @@ from scipy.sparse.linalg import spsolve_triangular
 
 class TemplateStrategy:
 
+    def __init__(self, seed=0):
+        self.prng = np.random.RandomState(seed)
+        
     def strategy(self):
         pass
   
@@ -26,7 +29,7 @@ class TemplateStrategy:
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
         self._set_workload(W)
-        init = np.random.rand(self._params.size)
+        init = self.prng.rand(self._params.size)
         bnds = [(0,None)]*init.size
        
         opts = { 'ftol' : 1e-4 }
@@ -49,7 +52,9 @@ class BestTemplate(TemplateStrategy):
     """
     Optimize strategy using several templates and give the best one
     """
-    def __init__(self, templates):
+    def __init__(self, templates, seed=0):
+        super(BestTemplate, self).__init__(seed)
+
         self.templates = templates
         self.best = self.templates[0]
 
@@ -66,8 +71,10 @@ class BestTemplate(TemplateStrategy):
         return best_loss
 
 class Default(TemplateStrategy):
-    def __init__(self, m, n):
-        self._params = np.random.rand(m*n)
+    def __init__(self, m, n, seed=0):
+        super(Default, self).__init__(seed)
+
+        self._params = self.prng.rand(m*n)
         self.shape = (m, n)
 
     def strategy(self):
@@ -100,13 +107,15 @@ class PIdentity(TemplateStrategy):
     A PIdentity strategy is a strategy of the form (I + B) D where D is a diagonal scaling matrix
     that depends on B and ensures uniform column norm.  B is a p x n matrix of free parameters.
     """
-    def __init__(self, p, n):
+    def __init__(self, p, n, seed=0):
         """
         Initialize a PIdentity strategy
         :param p: the number of non-identity queries
         :param n: the domain size
         """
-        self._params = np.random.rand(p*n)
+        super(PIdentity, self).__init__(seed)
+
+        self._params = self.prng.rand(p*n)
         self.p = p
         self.n = n
 
@@ -165,11 +174,13 @@ class AugmentedIdentity(TemplateStrategy):
     A strategy of the form w*T + I can be represented as an AugmentedIdentity strategy with
     P = np.ones((1, n), dtype=int)
     """
-    def __init__(self, imatrix):
+    def __init__(self, imatrix, seed=0):
+        super(AugmentedIdentity, self).__init__(seed)
+
         self._imatrix = imatrix
         p, n = imatrix.shape
         num = imatrix.max()
-        self._params = np.random.rand(num)
+        self._params = self.prng.rand(num)
         self._pid = PIdentity(p, n)
 
     def _set_workload(self, W):
@@ -195,7 +206,9 @@ class AugmentedIdentity(TemplateStrategy):
         return obj, grad2
 
 class Static(TemplateStrategy):
-    def __init__(self, strategy, approx = False):
+    def __init__(self, strategy, approx = False, seed=0):
+        super(Static, self).__init__(seed)
+
         self._strategy = strategy
         self._approx = approx
 
@@ -220,7 +233,9 @@ class Static(TemplateStrategy):
         return delta * trace
 
 class Kronecker(TemplateStrategy):
-    def __init__(self, templates):
+    def __init__(self, templates, seed=0):
+        super(Kronecker, self).__init__(seed)
+
         self._templates = templates
 
     def strategy(self):
@@ -261,9 +276,11 @@ class Kronecker(TemplateStrategy):
         return loss
 
 class Union(TemplateStrategy):
-    def __init__(self, templates, approx = False):
+    def __init__(self, templates, approx = False, seed=0):
         # expects workload to be a list of same length as templates
         # workload may contain subworkloads defined over different marginals of the data vector
+        super(Union, self).__init__(seed)
+
         self._templates = templates
         self._weights = np.ones(len(templates)) / len(templates)
         self._approx = approx
@@ -298,10 +315,12 @@ class Union(TemplateStrategy):
         return np.sum(errors / weights**2)
 
 class Marginals(TemplateStrategy):
-    def __init__(self, domain, approx = False):
+    def __init__(self, domain, approx = False, seed=0):
+        super(Marginals, self).__init__(seed)
+
         self._domain = domain
         d = len(domain)
-        self._params = np.random.rand(2**len(domain))
+        self._params = self.prng.rand(2**len(domain))
         self._approx = approx
  
         self.gram = workload.MarginalsGram(domain, self._params**2)
@@ -349,6 +368,10 @@ class Marginals(TemplateStrategy):
         return delta*ans, delta*dtheta + ddelta*ans
 
 class YuanConvex(TemplateStrategy):
+
+    def __init__(self, seed=0):
+        super(YuanConvex, self).__init__(seed)
+
     def optimize(self, W):
         V = W.gram().dense_matrix().astype(float)
         if np.linalg.matrix_rank(V) < V.shape[0]:

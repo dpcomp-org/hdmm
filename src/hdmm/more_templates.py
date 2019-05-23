@@ -26,13 +26,15 @@ class CustomTemplate(templates.TemplateStrategy):
     a strategy A(theta).  Gradients + Optimization are handled automatically as long
     as the passed function is compatible with autograd.  
     """
-    def __init__(self, strategy, theta0, normalize=True):
+    def __init__(self, strategy, theta0, normalize=True, seed=0):
         """
         :param strategy: a function mapping parameters theta to strategies A(theta)
         :param theta0: the initial parameters
         :param normalize: flag to determine if A(theta) should be normalized
             Note: if normalize=False, A(theta) must always have bounded sensitivity for any theta
         """
+        super(CustomTemplate, self).__init__(seed)
+
         self.strategy = strategy
         self.set_params(theta0)
         self.normalize = True
@@ -65,9 +67,11 @@ class RowWeighted(templates.TemplateStrategy):
     the queries from the base matrix, weighted according to the weight vector, plus any leftover 
     privacy budget is used to answer the identity queries.
     """
-    def __init__(self, base):
+    def __init__(self, base, seed=0):
+        super(RowWeighted, self).__init__(seed)
+
         self.base = base
-        theta0 = np.random.rand(base.shape[0]) * 3
+        theta0 = self.prng.rand(base.shape[0]) * 3
         self.set_params(theta0) 
 
     @property
@@ -113,7 +117,7 @@ if __name__ == '__main__':
     age = sf1.project_and_merge([[4]])
     B = np.unique(age.W, axis=0)
     B = B[B.sum(axis=1)>1]
-    theta = 5*np.random.rand(B.shape[0])
+    theta = 5*self.prng.rand(B.shape[0])
     
     A = RowWeighted(B, theta)
     P = templates.PIdentity(8,115)
