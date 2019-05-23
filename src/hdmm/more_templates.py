@@ -26,7 +26,7 @@ class CustomTemplate(templates.TemplateStrategy):
     a strategy A(theta).  Gradients + Optimization are handled automatically as long
     as the passed function is compatible with autograd.  
     """
-    def __init__(self, strategy, theta0, normalize=True, seed=0):
+    def __init__(self, strategy, theta0, normalize=True, seed=None):
         """
         :param strategy: a function mapping parameters theta to strategies A(theta)
         :param theta0: the initial parameters
@@ -67,7 +67,7 @@ class RowWeighted(templates.TemplateStrategy):
     the queries from the base matrix, weighted according to the weight vector, plus any leftover 
     privacy budget is used to answer the identity queries.
     """
-    def __init__(self, base, seed=0):
+    def __init__(self, base, seed=None):
         super(RowWeighted, self).__init__(seed)
 
         self.base = base

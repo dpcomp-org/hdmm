@@ -42,9 +42,10 @@ def summarize_strategy(W, A, domain):
 if __name__ == '__main__':
 
     W, domain = dhc_household()
+    seed = 0
 
     # Define strategies
-    A_marg = templates.Marginals(domain)
+    A_marg = templates.Marginals(domain, seed=seed)
     A_marg.optimize(W)
 
     W_approx = workload.Marginals.approximate(W)

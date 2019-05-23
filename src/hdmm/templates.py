@@ -7,7 +7,10 @@ from scipy.sparse.linalg import spsolve_triangular
 
 class TemplateStrategy:
 
-    def __init__(self, seed=0):
+    def __init__(self, seed=None):
+        if seed is None:
+            seed = np.random.randint(2**32-1)
+
         self.prng = np.random.RandomState(seed)
         
     def strategy(self):
@@ -52,7 +55,7 @@ class BestTemplate(TemplateStrategy):
     """
     Optimize strategy using several templates and give the best one
     """
-    def __init__(self, templates, seed=0):
+    def __init__(self, templates, seed=None):
         super(BestTemplate, self).__init__(seed)
 
         self.templates = templates
@@ -71,7 +74,7 @@ class BestTemplate(TemplateStrategy):
         return best_loss
 
 class Default(TemplateStrategy):
-    def __init__(self, m, n, seed=0):
+    def __init__(self, m, n, seed=None):
         super(Default, self).__init__(seed)
 
         self._params = self.prng.rand(m*n)
@@ -107,7 +110,7 @@ class PIdentity(TemplateStrategy):
     A PIdentity strategy is a strategy of the form (I + B) D where D is a diagonal scaling matrix
     that depends on B and ensures uniform column norm.  B is a p x n matrix of free parameters.
     """
-    def __init__(self, p, n, seed=0):
+    def __init__(self, p, n, seed=None):
         """
         Initialize a PIdentity strategy
         :param p: the number of non-identity queries
@@ -174,7 +177,7 @@ class AugmentedIdentity(TemplateStrategy):
     A strategy of the form w*T + I can be represented as an AugmentedIdentity strategy with
     P = np.ones((1, n), dtype=int)
     """
-    def __init__(self, imatrix, seed=0):
+    def __init__(self, imatrix, seed=None):
         super(AugmentedIdentity, self).__init__(seed)
 
         self._imatrix = imatrix
@@ -206,7 +209,7 @@ class AugmentedIdentity(TemplateStrategy):
         return obj, grad2
 
 class Static(TemplateStrategy):
-    def __init__(self, strategy, approx = False, seed=0):
+    def __init__(self, strategy, approx = False, seed=None):
         super(Static, self).__init__(seed)
 
         self._strategy = strategy
@@ -233,7 +236,7 @@ class Static(TemplateStrategy):
         return delta * trace
 
 class Kronecker(TemplateStrategy):
-    def __init__(self, templates, seed=0):
+    def __init__(self, templates, seed=None):
         super(Kronecker, self).__init__(seed)
 
         self._templates = templates
@@ -276,7 +279,7 @@ class Kronecker(TemplateStrategy):
         return loss
 
 class Union(TemplateStrategy):
-    def __init__(self, templates, approx = False, seed=0):
+    def __init__(self, templates, approx = False, seed=None):
         # expects workload to be a list of same length as templates
         # workload may contain subworkloads defined over different marginals of the data vector
         super(Union, self).__init__(seed)
@@ -315,7 +318,7 @@ class Union(TemplateStrategy):
         return np.sum(errors / weights**2)
 
 class Marginals(TemplateStrategy):
-    def __init__(self, domain, approx = False, seed=0):
+    def __init__(self, domain, approx = False, seed=None):
         super(Marginals, self).__init__(seed)
 
         self._domain = domain
@@ -369,7 +372,7 @@ class Marginals(TemplateStrategy):
 
 class YuanConvex(TemplateStrategy):
 
-    def __init__(self, seed=0):
+    def __init__(self, seed=None):
         super(YuanConvex, self).__init__(seed)
 
     def optimize(self, W):
