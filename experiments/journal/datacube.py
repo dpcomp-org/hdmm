@@ -18,15 +18,15 @@ def datacube_strategy(W):
     
     ans = datacube(L, W.domain, 2)
 
-    print(L)
-    print(ans)
+    #print(L)
+    #print(ans)
 
     theta = {}
     for marginal in ans:
         tpl = tuple(sorted(list(marginal)))
         theta[tpl] = 1.0
    
-    print(theta) 
+    #print(theta) 
     A = workload.Marginals.fromtuples(W.domain, theta)
     return A
 

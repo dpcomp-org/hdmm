@@ -216,8 +216,13 @@ class Weighted(EkteloMatrix):
         self.dtype = base.dtype
     
     def _matmat(self, V):
-        return self.weight * self.base.dot(V)
-    
+        ans = self.base.dot(V)
+        try:
+            ans *= self.weight
+        except:
+            ans = self.weight * ans
+        return ans
+        
     def _transpose(self):
         return Weighted(self.base.T, self.weight)
     
@@ -349,7 +354,10 @@ class HStack(EkteloMatrix):
 
     def _matmat(self, V):
         vs = np.split(V, self.split)
-        return sum([Q.dot(z) for Q, z in zip(self.matrices, vs)])
+        ans = np.zeros((self.shape[0], V.shape[1]), dtype=self.dtype)
+        for Q,z in zip(self.matrices, vs):
+            ans += Q.dot(z)
+        return ans
     
     def _transpose(self):
         return VStack([Q.T for Q in self.matrices])

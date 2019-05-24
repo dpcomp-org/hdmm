@@ -2,6 +2,14 @@ from functools import reduce
 from scipy import sparse
 import numpy as np
 
+def svdb(W):
+    eigs = np.linalg.eig(W.gram().dense_matrix())[0]
+    svdb = np.sqrt(np.maximum(0, np.real(eigs))).sum()**2 / W.shape[1]
+    return svdb
+
+def svdb_kron(W):
+    return np.prod([svdb(Q) for Q in W.matrices])
+
 def svdb_marg(W):
     G = W.gram()
     d = len(G.domain)
