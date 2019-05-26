@@ -58,3 +58,17 @@ def per_query_error(W, A, eps=np.sqrt(2), delta=0, normalize=False):
     err = X.diag()
     answer = var * delta**2 * err
     return np.sqrt(answer) if normalize else answer
+
+
+def strategy_supports_workload(W, A):
+    '''
+    :param W: workload
+    :param A: strategy
+    :return: True is W is supported by A
+    '''
+    AtA = A.gram()
+    AtA1 = AtA.pinv()
+    WtW = W.gram()
+    X = WtW @ AtA1 @ AtA
+    y = np.random.rand(WtW.shape[1])
+    return np.allclose(WtW @ y,X @ y)

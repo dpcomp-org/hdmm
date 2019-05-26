@@ -19,15 +19,3 @@ def nCr(n, r):
     return f(n) / f(r) / f(n-r)
 
 
-def supported(W, A):
-    '''
-    :param W: workload
-    :param A: strategy
-    :return: True is W is supported by A
-    '''
-    AtA = A.gram()
-    AtA1 = AtA.pinv()
-    WtW = W.gram()
-    X = WtW @ AtA1 @ AtA
-    y = np.random.rand(WtW.shape[1])
-    return np.allclose(WtW @ y,X @ y)
