@@ -19,11 +19,6 @@ def expected_error(W, A, eps=np.sqrt(2), delta=0):
     if isinstance(AtA1, workload.MarginalsGram):
         WtW = workload.MarginalsGram.approximate(WtW)
     X = WtW @ AtA1
-
-    z = np.random.rand(X.shape[0])
-    if np.linalg.norm(X @ AtA @ z - WtW @ z) > 1e-5:
-        return np.inf
-
     delta = A.sensitivity()
     if isinstance(X, workload.Sum):
         trace = sum(Y.trace() for Y in X.matrices)

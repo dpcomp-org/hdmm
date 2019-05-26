@@ -27,7 +27,7 @@ class TemplateStrategy:
         self._workload = W
         self._gram = W.gram()
 
-    def optimize(self, W):
+    def optimize(self, W, init=None):
         """
         Optimize strategy for given workload 
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
@@ -42,14 +42,18 @@ class TemplateStrategy:
         return res.fun       
  
     def restart_optimize(self, W, restarts):
-        best_A, best_loss = None, np.inf
+        best_A, best_params, best_loss = None, None, np.inf
+        init = self._params
         for _ in range(restarts):
-            loss = self.optimize(W)
+            loss = self.optimize(W, init)
             A = self.strategy()
             #loss = error.rootmse(W, A)
             if loss <= best_loss:
                 best_loss = loss
                 best_A = A
+                best_params = np.copy(self._params)
+            init = np.random.rand(self._params.size)
+        self._params = best_params
         return best_A, best_loss
 
 class BestTemplate(TemplateStrategy):
@@ -73,6 +77,17 @@ class BestTemplate(TemplateStrategy):
                 best_loss = loss
                 self.best = temp
         return best_loss
+
+    def restart_optimize(self, W, restarts):
+        best_A, best_loss = None, np.inf
+        for temp in self.templates:
+            A, loss = temp.restart_optimize(W, restarts)
+            if loss < best_loss:
+                best_loss = loss
+                best_A = A
+                self.best = temp
+        return best_A, best_loss
+
 
 class Default(TemplateStrategy):
     def __init__(self, m, n, seed=None):
@@ -235,6 +250,10 @@ class Static(TemplateStrategy):
             delta = A.sensitivity()**2
         trace = X.trace()
         return delta * trace
+
+    def restart_optimize(self, W, restarts):
+        loss = self.optimize(W)
+        return self.strategy(), loss
 
 class Kronecker(TemplateStrategy):
     def __init__(self, templates, seed=None):
