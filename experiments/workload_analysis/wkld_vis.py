@@ -1,13 +1,13 @@
 
 from hdmm import workload, templates, error
-from experiments.marginals import util
+from experiments.workload_analysis import util
 
 '''
-Below are marginals workloads motivated by private visualization using a dashboard
+Below are workload_analysis workloads motivated by private visualization using a dashboard
 '''
 
 def summarize_strategy(W, A, domain):
-    # print table of marginals in binary, workload weights, and strategy weights
+    # print table of workload_analysis in binary, workload weights, and strategy weights
     for i in range(2**len(domain)):
         if W.weights[i] > 0 or A._params[i] > 0:
             print(
@@ -18,13 +18,13 @@ def summarize_strategy(W, A, domain):
             )
 
 def scenario1(domain):
-    # Define marginals workload -- scenario 1
-    # workload consisting of all one- and two-way marginals
+    # Define workload_analysis workload -- scenario 1
+    # workload consisting of all one- and two-way workload_analysis
     return workload.DimKMarginals(domain, [0,1,2])
 
 
 def scenario2(domain, wkld_depth):
-    # Define marginals workload -- scenario 2
+    # Define workload_analysis workload -- scenario 2
     '''
         - step 1: H(A1)
         - step 2: H(A2), H(A1,A2)

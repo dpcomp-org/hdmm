@@ -1,6 +1,7 @@
 from hdmm import workload, templates, error
 import numpy as np
-from experiments.marginals import util
+
+from workload_analysis import util
 
 
 '''
@@ -128,7 +129,7 @@ if __name__ == '__main__':
     # Define alternative strategies
     #
 
-    # HDMM marginals param
+    # HDMM workload_analysis param
     A_marg = templates.Marginals(domain, seed=1004) # 1004   10004?
     A_marg.optimize(W)
 
@@ -157,6 +158,7 @@ if __name__ == '__main__':
     A_manual_opt = templates.Marginals(domain, seed=1001)
     A_manual_opt._params = temp.weights
     A_manual_opt.optimize(W)
+    summarize_strategy(W, A_manual_opt, domain)
 
     print('Num queries:', W.shape[0])
     print('Sensitivity:', W.sensitivity())
