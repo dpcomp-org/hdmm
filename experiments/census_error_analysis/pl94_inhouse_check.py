@@ -57,7 +57,8 @@ def __numraces():
         numraces[ct-1, i-1] = 1.0
     return EkteloMatrix(numraces)
 
-def pl94_workload():
+def pl94_workload(with_full_id=False):
+
     cenrace = Kronecker([Total(2), Total(2), Identity(63), Total(8)])
     gqlevels = Kronecker([Total(2), Total(2), Total(63), __gqlevel()])
     hispanic = Kronecker([Identity(2), Total(2), Total(63), Total(8)])
@@ -74,12 +75,17 @@ def pl94_workload():
     votingage_hispanic_numraces = Kronecker([Identity(2), Identity(2), __numraces(), Total(8)])
     votingage_numraces = Kronecker([Total(2), Identity(2), __numraces(), Total(8)])
 
+    full_id = Kronecker([Identity(2), Identity(2), Identity(63), Identity(8)])
 
-    W = VStack([cenrace, gqlevels, hispanic, hispanic_cenrace, hispanic_numraces, household,
+    W_list = [cenrace, gqlevels, hispanic, hispanic_cenrace, hispanic_numraces, household,
             institutionlized, numraces, total, votingage, votingage_cenrace, votingage_hispanic,
-            votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces])
+            votingage_hispanic_cenrace, votingage_hispanic_numraces, votingage_numraces]
 
-    return W
+    if with_full_id:
+        W_list.append(full_id)
+
+    return VStack(W_list)
+
 
 def opt_p_identity(workload=None):
     ps = [1, 1, 8, 4]   # hard-coded parameters
@@ -105,7 +111,7 @@ def marginal_strategy(workload=None):
 
 if __name__ == '__main__':
 
-    W = pl94_workload()
+    W = pl94_workload(with_full_id=True)
 
     print(W.shape)
 
