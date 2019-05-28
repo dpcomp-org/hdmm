@@ -69,6 +69,8 @@ def strategy_supports_workload(W, A):
     AtA = A.gram()
     AtA1 = AtA.pinv()
     WtW = W.gram()
+    if isinstance(AtA1, workload.MarginalsGram):
+        WtW = workload.MarginalsGram.approximate(WtW)
     X = WtW @ AtA1 @ AtA
     y = np.random.rand(WtW.shape[1])
-    return np.allclose(WtW @ y,X @ y)
+    return np.allclose(WtW @ y, X @ y)
