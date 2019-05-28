@@ -87,12 +87,14 @@ P12_e = Kronecker([Identity(2), __notHispanic(), __white(), Total(17), __age1()]
 P12_f = Kronecker([IdentityTotal(2), __notHispanic(), __white(), Total(17), Total(115)])
 PCT12a = Kronecker([Identity(2), Total(2), Total(64), Total(17), __age3()])
 PCT12b = P12b
+
 PCT12_a = Kronecker([Identity(2), Total(2), __race1(), Total(17), __age3()])
 PCT12_b = Kronecker([IdentityTotal(2), Total(2), __race1(), Total(17), Total(115)])
 PCT12_c = Kronecker([Identity(2), __isHispanic(), Total(64), Total(17), __age3()])
 PCT12_d = Kronecker([IdentityTotal(2), __isHispanic(), Total(64), Total(17), Total(115)])
 PCT12_e = Kronecker([Identity(2), __notHispanic(), __race1(), Total(17), __age3()])
 PCT12_f = Kronecker([IdentityTotal(2), __notHispanic(), __race1(), Total(17), Total(115)])
+age_identity = Kronecker([Total(2), Total(2), Total(64), Total(17), Identity(115)])
 
 # dictionary for SF1 tables
 sf1 = {}
@@ -109,6 +111,7 @@ sf1['P12'] = [P12a, P12b]
 sf1['P12A_I'] = [P12_a, P12_b, P12_c, P12_d, P12_e, P12_f]
 sf1['PCT12'] = [PCT12a, PCT12b]
 sf1['PCT12A_O'] = [PCT12_a, PCT12_b, PCT12_c, PCT12_d, PCT12_e, PCT12_f]
+sf1['age_identity'] = [age_identity]
 
 
 def build_workload(workload_keys):

@@ -111,3 +111,4 @@ ENV/
 .idea/hdmm.iml
 
 .idea/encodings.xml
+.idea/other.xml
