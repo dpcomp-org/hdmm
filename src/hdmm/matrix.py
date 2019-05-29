@@ -216,12 +216,7 @@ class Weighted(EkteloMatrix):
         self.dtype = base.dtype
     
     def _matmat(self, V):
-        ans = self.base.dot(V)
-        try:
-            ans *= self.weight
-        except:
-            ans = self.weight * ans
-        return ans
+        return self.weight * self.base.dot(V)
         
     def _transpose(self):
         return Weighted(self.base.T, self.weight)
