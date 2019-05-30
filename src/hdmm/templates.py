@@ -37,7 +37,7 @@ class TemplateStrategy:
        
         opts = { 'ftol' : 1e-4 }
         res = optimize.minimize(self._loss_and_grad, init, jac=True, method='L-BFGS-B', bounds=bnds, options=opts)
-        self._params = res.x
+        self._params = np.maximum(0, res.x)
         return res.fun       
  
     def restart_optimize(self, W, restarts):
@@ -329,7 +329,11 @@ class Marginals(TemplateStrategy):
         self.gram = workload.MarginalsGram(domain, self._params**2)
 
     def strategy(self):
-        weights = np.sqrt(self._params) if self._approx else self._params
+        if self._approx:
+            weights = np.sqrt(self._params)
+            weights /= np.linalg.norm(weights)
+        else:
+            weights = self._params / self._params.sum()
         return workload.Marginals(self._domain, weights)
 
     def _set_workload(self, W):
