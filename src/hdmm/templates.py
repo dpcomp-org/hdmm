@@ -4,6 +4,7 @@ import numpy as np
 from scipy import optimize
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
+from scipy.linalg.lapack import dpotrf, dpotri
 
 class TemplateStrategy:
 
@@ -26,13 +27,14 @@ class TemplateStrategy:
         self._workload = W
         self._gram = W.gram()
 
-    def optimize(self, W):
+    def optimize(self, W, init=None):
         """
         Optimize strategy for given workload 
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
         self._set_workload(W)
-        init = self.prng.rand(self._params.size)
+        if init is None:
+            init = self.prng.rand(self._params.size)
         bnds = [(0,None)]*init.size
        
         opts = { 'ftol' : 1e-4 }
@@ -41,14 +43,18 @@ class TemplateStrategy:
         return res.fun       
  
     def restart_optimize(self, W, restarts):
-        best_A, best_loss = None, np.inf
+        best_A, best_params, best_loss = None, None, np.inf
+        init = self._params
         for _ in range(restarts):
-            loss = self.optimize(W)
+            loss = self.optimize(W, init)
             A = self.strategy()
             #loss = error.rootmse(W, A)
             if loss <= best_loss:
                 best_loss = loss
                 best_A = A
+                best_params = np.copy(self._params)
+            init = np.random.rand(self._params.size)
+        self._params = best_params
         return best_A, best_loss
 
 class BestTemplate(TemplateStrategy):
@@ -72,6 +78,17 @@ class BestTemplate(TemplateStrategy):
                 best_loss = loss
                 self.best = temp
         return best_loss
+
+    def restart_optimize(self, W, restarts):
+        best_A, best_loss = None, np.inf
+        for temp in self.templates:
+            A, loss = temp.restart_optimize(W, restarts)
+            if loss < best_loss:
+                best_loss = loss
+                best_A = A
+                self.best = temp
+        return best_A, best_loss
+
 
 class Default(TemplateStrategy):
     def __init__(self, m, n, seed=None):
@@ -235,6 +252,10 @@ class Static(TemplateStrategy):
         trace = X.trace()
         return delta * trace
 
+    def restart_optimize(self, W, restarts):
+        loss = self.optimize(W)
+        return self.strategy(), loss
+
 class Kronecker(TemplateStrategy):
     def __init__(self, templates, seed=None):
         super(Kronecker, self).__init__(seed)
@@ -374,17 +395,75 @@ class Marginals(TemplateStrategy):
             dtheta = 2*theta*dtheta2
         return delta*ans, delta*dtheta + ddelta*ans
 
+class McKennaConvex(TemplateStrategy):
+    def __init__(self, n):
+        self.n = n
+        self._mask = np.tri(n, dtype=bool, k=-1)
+        self._params = np.zeros(n*(n-1)//2)
+        self.X = np.zeros((n,n))
+
+    def strategy(self):
+        tri = np.zeros((self.n,self.n))
+        tri[self._mask] = self._params
+        X = np.eye(self.n) + tri + tri.T
+        A = np.linalg.cholesky(X).T
+        return matrix.EkteloMatrix(A)
+
+    def _set_workload(self, W):
+        self.V = W.gram().dense_matrix().astype(float)
+        self.W = W
+
+    def _loss_and_grad(self, params):
+        V = self.V
+        X = self.X
+        X.fill(0)
+        #X = np.zeros((self.n,self.n))
+        X[self._mask] = params
+        X += X.T
+        np.fill_diagonal(X, 1)
+
+        zz, info0 = dpotrf(X, False, False)
+        iX, info1 = dpotri(zz)
+        iX = np.triu(iX) + np.triu(iX, k=1).T      
+        if info0 != 0 or info1 != 0:
+            #print('checkpt')
+            return self._loss*100, np.zeros_like(params)
+      
+        loss = np.sum(iX * V) 
+        G = -iX @ V @ iX
+        g = G[self._mask] + G.T[self._mask]
+
+        self._loss = loss
+        #print(np.sqrt(loss / self.W.shape[0]))
+        return loss, g#G.flatten() 
+
+    def optimize(self, W):
+        self._set_workload(W)
+
+        eig, P = np.linalg.eigh(self.V)
+        eig = np.real(eig)
+        eig[eig < 1e-10] = 0.0
+        X = P @ np.diag(np.sqrt(eig)) @ P.T
+        X /= np.diag(X).max()
+        x = X[self._mask]
+
+        #x = np.eye(self.n).flatten()
+        #bnds = [(1,1) if x[i] == 1 else (None, None) for i in range(x.size)]
+        #x = self._params
+      
+        opts = { 'maxcor' : 1 } 
+        res = optimize.minimize(self._loss_and_grad, x, jac=True, method='L-BFGS-B', options=opts)
+        self._params = res.x
+        #print(res)
+        return res.fun       
+  
 class YuanConvex(TemplateStrategy):
 
     def __init__(self, seed=None):
         super(YuanConvex, self).__init__(seed)
 
     def optimize(self, W):
-        V = W.gram().dense_matrix().astype(float)
-        if np.linalg.matrix_rank(V) < V.shape[0]:
-            V += 1e-3 * np.eye(V.shape[0])
-        scale = V.mean()
-        V /= scale
+        V = W.gram().dense_matrix()
 
         accuracy = 1e-10
         max_iter_ls = 50
@@ -460,7 +539,7 @@ class YuanConvex(TemplateStrategy):
                 break
 
         self.ans = np.linalg.cholesky(X).T
-        return scale * fcurr
+        return fcurr
 
     def strategy(self):
         return matrix.EkteloMatrix(self.ans)
@@ -470,7 +549,7 @@ def OPT0(n, approx=False):
     temp1 = Identity(n)
     temp2 = Total(n)
     if approx:
-        temp3 = YuanConvex()
+        temp3 = McKennaConvex(n)
         return BestTemplate([temp1, temp2, temp3]) 
     else:
         p = max(n//16, 1)

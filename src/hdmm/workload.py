@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import spsolve_triangular
+from scipy.special import binom
 from functools import reduce
 
 def Total(n, dtype=np.float64):
@@ -195,6 +196,22 @@ class RangeQueries(Product):
     def unproject(self, offset, domain):
         return RangeQueries(domain, self._lower+np.array(offset), self._higher+np.array(offset))
 
+class Permuted(EkteloMatrix):
+    def __init__(self, base, seed=0):
+        self.base = base
+        prng = np.random.RandomState(seed)
+        self.idx = prng.permutation(base.shape[1])
+        self.shape = base.shape
+        self.dtype = base.dtype
+
+    @property
+    def matrix(self):
+        return self.base.dense_matrix()[:,self.idx]
+   
+    def gram(self):
+        WtW = self.base.gram().dense_matrix()
+        return EkteloMatrix(WtW[self.idx,:][:,self.idx])
+
 class Marginal(Kronecker):
     def __init__(self, domain, key):
         """
@@ -204,6 +221,7 @@ class Marginal(Kronecker):
         self.domain = tuple(domain)
         self.key = key
         binary = self.binary()
+        self._axes = tuple(i for i in range(len(binary)) if binary[i] == 0)
         subs = []
         for i,n in enumerate(domain):
             if binary[i] == 0:
@@ -211,6 +229,21 @@ class Marginal(Kronecker):
             else:
                 subs.append(Identity(n))
         Kronecker.__init__(self, subs)
+
+    def _matmat(self, V):
+        tensor = V.reshape(*self.domain, V.shape[1])
+        return tensor.sum(axis=self._axes).reshape(-1, V.shape[1])
+
+    def _rmatmat(self, V):  
+        newdom = tuple(self.domain[i] if i in self.tuple() else 1 for i in range(len(self.domain)))
+        tensor = V.reshape(*newdom, V.shape[1])
+        ans = np.broadcast_to(tensor, self.domain + (V.shape[1],))
+        return ans.reshape(-1, V.shape[1])
+
+    def _transpose(self):
+        ans = Kronecker._transpose(self)
+        ans._matmat = self._rmatmat
+        return ans
 
     def binary(self):
         i = self.key
@@ -238,7 +271,7 @@ class Marginal(Kronecker):
 
 class Marginals(VStack):
     def __init__(self, domain, weights):
-        self.domain = domain
+        self.domain = tuple(domain)
         self.weights = weights
         subs = []
         for key, wgt in enumerate(weights):
@@ -296,6 +329,19 @@ class MarginalsGram(Sum):
         self._mult = mult
 
         Sum.__init__(self, subs)
+
+    def _matmat(self, V):
+        tensor = V.reshape(*self.domain, V.shape[1])
+        ans = self.weights[-1] * tensor
+        d = len(self.domain)
+        for key in range(2**d-1):
+            binary = tuple([int(bool(2**k & key)) for k in range(d)])[::-1]
+            axes = tuple(i for i in range(len(binary)) if binary[i] == 0)
+            if self.weights[key] != 0:
+                tmp = tensor.sum(axis=axes, keepdims=True)
+                tmp *= self.weights[key]
+                ans += tmp
+        return ans.reshape(-1, V.shape[1])
 
     def _Xmatrix(self,vect):
         # the matrix X such that M(u) M(v) = M(X(u) v)
@@ -393,7 +439,7 @@ class AllNormK(EkteloMatrix):
         if type(norms) is int:
             norms = [norms]
         self.norms = norms
-        self.m = int(sum(utility.nCr(n, k) for k in norms))
+        self.m = int(sum(binom(n, k) for k in norms))
         self.shape = (self.m, self.n)
         self.dtype = dtype
 
@@ -411,8 +457,8 @@ class AllNormK(EkteloMatrix):
         # WtW[i,i] = nCr(n-1, k-1) (1 for each query having q[i] = 1)
         # WtW[i,j] = nCr(n-2, k-2) (1 for each query having q[i] = q[j] = 1)
         n = self.n
-        diag = sum(utility.nCr(n-1, k-1) for k in self.norms)
-        off = sum(utility.nCr(n-2, k-2) for k in self.norms)
+        diag = sum(binom(n-1, k-1) for k in self.norms)
+        off = sum(binom(n-2, k-2) for k in self.norms)
         return off*Ones(n,n) + (diag-off)*Identity(n)
 
 class Disjuncts(Sum):

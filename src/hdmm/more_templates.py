@@ -1,4 +1,4 @@
-import templates
+from hdmm import templates
 import autograd.numpy as np
 from autograd import grad
 from autograd.extend import primitive, defvjp
@@ -72,21 +72,24 @@ class RowWeighted(templates.TemplateStrategy):
 
         self.base = base
         theta0 = self.prng.rand(base.shape[0]) * 3
-        self.set_params(theta0) 
+        self._params = theta0
 
     @property
     def A(self):
-        B = self.base * self.get_params()[:,None] 
+        B = self.base * self._params[:,None] 
         p, n = B.shape
         scale = 1.0 + np.sum(B, axis=0)
         B = B / np.max(scale)
         diag = 1.0 - np.sum(B, axis=0)
         return np.vstack([np.diag(diag), B])
 
+    def _set_workload(self, W):
+        self.WtW = W.gram().dense_matrix()
+
     # objective function not as well behaved as PIdentity's objective function
     # because of the max function (convergence may be slower)
     def _loss(self, params):
-        WtW = self.workload.WtW 
+        WtW = self.WtW
         B = self.base * params[:,None] 
         p, n = B.shape
         scale = 1.0 + np.sum(B, axis=0)
@@ -107,25 +110,5 @@ class RowWeighted(templates.TemplateStrategy):
     def _grad(self, params):
         return grad(self._loss)(params)
 
-    def _loss_and_grad(self):
-        params = self.get_params()
+    def _loss_and_grad(self, params):
         return self._loss(params), self._grad(params)
-
-if __name__ == '__main__':
-    from experiments import census_workloads
-    sf1 = census_workloads.CensusSF1()
-    age = sf1.project_and_merge([[4]])
-    B = np.unique(age.W, axis=0)
-    B = B[B.sum(axis=1)>1]
-    theta = 5*self.prng.rand(B.shape[0])
-    
-    A = RowWeighted(B, theta)
-    P = templates.PIdentity(8,115)
-    A.set_workload(age)
-
-    A._loss(theta)
-
-    ans = A.optimize(age)
-    res = P.optimize(age)
-    print(ans['loss'], res['loss'])
-    #embed()
