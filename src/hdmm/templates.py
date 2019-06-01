@@ -33,7 +33,8 @@ class TemplateStrategy:
         :param W: the workload, may be a n x n numpy array for WtW or a workload object
         """
         self._set_workload(W)
-        init = self.prng.rand(self._params.size)
+        if init is None:
+            init = self.prng.rand(self._params.size)
         bnds = [(0,None)]*init.size
        
         opts = { 'ftol' : 1e-4 }
