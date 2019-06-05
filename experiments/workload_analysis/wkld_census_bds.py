@@ -98,31 +98,11 @@ def summarize_strategy(W, A, domain):
             )
     return None
 
-def best_seed(n):
-    base = 10000
-    for i in range(base, base+n):
-        A_marg = templates.Marginals(domain, seed=i)  # 1004 10004
-        A_marg.optimize(W)
-        print(i, 'Marg', '\t\t', f'{error.rootmse(W, A_marg.strategy()):10.3f}')
-
-
-def numerical_precision_bug():
-    W, domain = wkld_census_bds_firms()
-    # this seed happens to produce a few extremely small negative weights e.g. -1e-18
-    # it also leads to rather low rootmse (compared to all other strategies found)
-    A_marg = templates.Marginals(domain, seed=10004)
-    A_marg.optimize(W)
-    print('Marg', '\t\t', f'{error.rootmse(W, A_marg.strategy()):10.4f}')
-
-    # if the strategy is clipped, the rootmse changes substantially (and more inline with other runs)
-    A_marg._params = np.clip(A_marg._params, 0, float('inf'))
-    print('Marg', '\t\t', f'{error.rootmse(W, A_marg.strategy()):10.4f}')
-    summarize_strategy(W,A_marg,domain)
-
-
 
 if __name__ == '__main__':
 
+
+    # get the workload
     W, domain = wkld_census_bds_firms()
 
     #
@@ -130,10 +110,10 @@ if __name__ == '__main__':
     #
 
     # HDMM workload_analysis param
-    A_marg = templates.Marginals(domain, seed=1004) # 1004   10004?
+    A_marg = templates.Marginals(domain, seed=1004) # 1004 is a good seed!
     A_marg.optimize(W)
 
-    # the workload as strategy
+    # the workload, to be used as a strategy
     A_wkld = workload.Marginals.approximate(W)
 
     # full identity on all attributes in schema
@@ -145,16 +125,8 @@ if __name__ == '__main__':
     used_attr = tuple(set().union(*firm_workload.keys()))    # get all attributes used in BDS marginal set
     A_identity = workload.Marginals.fromtuples(domain, {used_attr:1}, columns=variables)
 
-    # HDMM opt applied to workload with weights proportional to cnt of queries in each marginal
-    # W_query_wght = workload.Marginals.fromtuples(domain, wkld_marginals_weighted(), columns=variables)
-    # A_query_wght = templates.Marginals(domain)
-    # A_query_wght.optimize(W_query_wght)
-
     # Manual strategy proposed by David
     A_manual = manual_strategy()
-    # for i, wgt in enumerate(A_manual.weights):
-    #     if wgt > 0:
-    #         print(i, wgt)
 
     # Manual strategy, with weights optimized by HDMM
     temp = workload.Marginals.approximate(A_manual)
@@ -162,12 +134,10 @@ if __name__ == '__main__':
     A_manual_opt._params = temp.weights
     A_manual_opt.optimize(W)
     A_manual_opt._params = np.clip(A_manual_opt._params, 0, float('inf'))
-    summarize_strategy(W, A_manual_opt, domain)
 
     print('Num queries:', W.shape[0])
     print('Sensitivity:', W.sensitivity())
     print('Marg', '\t\t', f'{error.rootmse(W, A_marg.strategy()):10.3f}')
-    #print('Marg query wght', f'{error.rootmse(W, A_query_wght.strategy()):10.3f}')
     print('Ident_full', '\t', f'{error.rootmse(W, A_identity_full.strategy()):10.3f}')
     print('Identity', '\t', f'{error.rootmse(W, A_identity):10.3f}')
     print('Workload', '\t', f'{error.rootmse(W, A_wkld):10.3f}')
@@ -177,8 +147,6 @@ if __name__ == '__main__':
     summarize_strategy(W, A_marg, domain)
 
     print('')
-
-    # summarize_strategy(W_query_wght, A_query_wght, domain)
 
     print('')
 
