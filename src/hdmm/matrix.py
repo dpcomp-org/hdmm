@@ -217,6 +217,11 @@ class Weighted(EkteloMatrix):
     
     def _matmat(self, V):
         return self.weight * self.base.dot(V)
+
+    def __mul__(self, other):
+        if isinstance(other,EkteloMatrix):
+            return Weighted(self.base @ other, self.weight)
+        return EkteloMatrix.__mul__(self, other)
         
     def _transpose(self):
         return Weighted(self.base.T, self.weight)
@@ -267,6 +272,9 @@ class Sum(EkteloMatrix):
 
     def diag(self):
         return sum(Q.diag() for Q in self.matrices)
+
+    def trace(self):
+        return sum(Q.trace() for Q in self.matrices)
 
     @property
     def matrix(self):
