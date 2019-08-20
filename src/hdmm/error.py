@@ -1,5 +1,5 @@
 import numpy as np
-from hdmm.matrix import EkteloMatrix, VStack
+from hdmm.matrix import EkteloMatrix, VStack, Kronecker, Weighted
 from hdmm import workload
 
 def convert_implicit(A):
@@ -60,6 +60,25 @@ def per_query_error(W, A, eps=np.sqrt(2), delta=0, normalize=False):
     answer = var * delta**2 * err
     return np.sqrt(answer) if normalize else answer
 
+def per_query_error_sampling(W, A, number=1000000, eps=np.sqrt(2), normalize=False):
+    # note: this only works for Kronecker or explicit strategy
+    W, A = convert_implicit(W), convert_implicit(A)
+    if isinstance(W, Weighted):
+        ans = W.weight**2 * per_query_error_sampling(W.base, A, numebr)
+    elif isinstance(W, VStack):
+        m = W.shape[0]
+        num = lambda Wi: int(number*Wi.shape[0]/m + 1)
+        samples = [per_query_error_sampling(Wi, A, num(Wi)) for Wi in W.matrices]
+        ans = np.concatenate(samples)
+    elif isinstance(W, Kronecker):
+        assert isinstance(A, Kronecker)
+        pieces=[per_query_error_sampling(Wi, Ai, number) for Wi,Ai in zip(W.matrices,A.matrices)]
+        ans = np.prod(pieces, axis=0)
+    else:
+        ans = np.random.choice(per_query_error(W, A), number)
+        delta = A.sensitivity()
+    ans *= 2.0/eps**2
+    return np.sqrt(ans) if normalize else ans
 
 def strategy_supports_workload(W, A):
     '''
