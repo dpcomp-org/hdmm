@@ -76,7 +76,7 @@ def per_query_error_sampling(W, A, number=100000, eps=np.sqrt(2), normalize=Fals
         ans = np.prod(pieces, axis=0)
     elif isinstance(W, Kronecker) and isinstance(A, workload.Marginals):
         # optimization: if W is Marginals, all errors are the same
-        if all( type(Wi) in [workload.Identity, workload.Total] for Wi in W.matrices ):
+        if all( type(Wi) in [workload.Identity, workload.Ones] for Wi in W.matrices ):
             err = expected_error(W, A)
             ans = np.repeat(err, number)
         else:
