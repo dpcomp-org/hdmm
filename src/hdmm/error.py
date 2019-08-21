@@ -60,20 +60,33 @@ def per_query_error(W, A, eps=np.sqrt(2), delta=0, normalize=False):
     answer = var * delta**2 * err
     return np.sqrt(answer) if normalize else answer
 
-def per_query_error_sampling(W, A, number=1000000, eps=np.sqrt(2), normalize=False):
+def per_query_error_sampling(W, A, number=100000, eps=np.sqrt(2), normalize=False):
     # note: this only works for Kronecker or explicit strategy
     W, A = convert_implicit(W), convert_implicit(A)
     if isinstance(W, Weighted):
-        ans = W.weight**2 * per_query_error_sampling(W.base, A, numebr)
+        ans = W.weight**2 * per_query_error_sampling(W.base, A, number)
     elif isinstance(W, VStack):
         m = W.shape[0]
         num = lambda Wi: int(number*Wi.shape[0]/m + 1)
         samples = [per_query_error_sampling(Wi, A, num(Wi)) for Wi in W.matrices]
         ans = np.concatenate(samples)
-    elif isinstance(W, Kronecker):
+    elif isinstance(W, Kronecker) and isinstance(A, Kronecker):
         assert isinstance(A, Kronecker)
         pieces=[per_query_error_sampling(Wi, Ai, number) for Wi,Ai in zip(W.matrices,A.matrices)]
         ans = np.prod(pieces, axis=0)
+    elif isinstance(W, Kronecker) and isinstance(A, workload.Marginals):
+        # optimization: if W is Marginals, all errors are the same
+        if all( type(Wi) in [workload.Identity, workload.Total] for Wi in W.matrices ):
+            err = expected_error(W, A)
+            ans = np.repeat(err, number)
+        else:
+            # will be very slow, uses for loop
+            AtA1 = A.gram().pinv()
+            ans = np.zeros(number)
+            for i in range(number):
+                idx = [np.random.randint(Wi.shape[0]) for Wi in W.matrices]
+                w = Kronecker([Wi[j] for Wi, j in zip(W.matrices, idx)])
+                ans[i] = expected_error(w, A)
     else:
         ans = np.random.choice(per_query_error(W, A), number)
         delta = A.sensitivity()
