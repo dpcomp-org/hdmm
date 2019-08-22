@@ -72,21 +72,28 @@ class BestTemplate(TemplateStrategy):
 
     def optimize(self, W):
         best_loss = np.inf
+        losses = []
         for temp in self.templates:
             loss = temp.optimize(W)
+            losses.append(loss)
             if loss < best_loss:
                 best_loss = loss
                 self.best = temp
+        self._errors = np.array(losses)
+        #print(best_loss, self.best)
         return best_loss
 
     def restart_optimize(self, W, restarts):
         best_A, best_loss = None, np.inf
+        losses = []
         for temp in self.templates:
             A, loss = temp.restart_optimize(W, restarts)
+            losses.append(loss)
             if loss < best_loss:
                 best_loss = loss
                 best_A = A
                 self.best = temp
+        self._losses = losses
         return best_A, best_loss
 
 
@@ -283,20 +290,20 @@ class Kronecker(TemplateStrategy):
 
         for i in range(d):
             for j in range(k):
-                C[i,j] = weights[j] * np.trace(workloads[j][i])
+                C[i,j] = np.trace(workloads[j][i])
         for _ in range(10):
             #err = C.prod(axis=0).sum()
             for i in range(d):
                 temp = self._templates[i]
-                cs = C.prod(axis=0) / C[i]
+                cs = weights * C.prod(axis=0) / C[i]
                 What = sum(c*WtWs[i] for c, WtWs in zip(cs, workloads))
                 What = workload.ExplicitGram(What / What.mean())
                 temp.optimize(What)
                 AtA1 = np.array(temp._AtA1())
                 for j in range(k):
-                    C[i,j] = weights[j] * np.sum(workloads[j][i] * AtA1)
+                    C[i,j] = np.sum(workloads[j][i] * AtA1)
 
-        loss = C.prod(axis=0).sum()
+        loss = (weights * C.prod(axis=0)).sum()
         return loss
 
 class Union(TemplateStrategy):
