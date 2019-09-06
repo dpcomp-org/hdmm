@@ -1,0 +1,41 @@
+{% extends "baseline.html" %}
+
+{% block content %}
+
+<div class="container">
+<div class="row">
+<h3 id="defining-workloads-using-building-blocks">Defining workloads using building blocks</h3>
+<p>Workloads can be constructed from four common building blocks over a single attribute A: <em>Identity</em>, <em>Preﬁx</em>, <em>AllRange</em>, <em>Total</em> and <em>Customize</em>. Each building block contains a set of predicates, given below (where <em>dom</em>(A) denotes the domain of attribute A):</p>
+<ul>
+<li>
+<p><em>Identity</em> (I): \( \phi_i = (A = a_i), \forall a_i \in dom(A) \).</p>
+</li>
+<li>
+<p><em>Prefix</em> (P): \( \phi_i = (A \ge a_i), \forall a_i \in dom(A) \).</p>
+</li>
+<li>
+<p><em>AllRange</em> (R): \( \phi_{ij} = (a_i \le A \le a_j), \forall a_i,a_j \in dom(A)\).</p>
+</li>
+<li>
+<p><em>Total</em> (T): \( \phi = True \)</p>
+</li>
+<li>
+<p><em>Customize</em> (C): <i>user defined predicate sets.</i></p>
+</li>
+</ul>
+<p>A workload can consist of a collection of attributes, and a corresponding building block for each attribute. The workload encodes the cartesian product of predicates in the building blocks, where individual queries from each building block are conjunctively combined.</p>
+<p>For example the set of queries that report all ranges of capital gains for each combination of sex and race could be encoded as <em>Identity</em> (Sex) × <em>Identity</em> (Race) × <em>AllRange</em> (Capital-gain). Omitted attributes have an implied Total predicate.</p>
+<p>The Identity building block is useful for categorical attributes with unordered domains, whereas Preﬁx and AllRange make sense for attributes with ordered domains, such as those arising from discretizing a numeric attribute. These building blocks can encode a wide variety of interesting workloads. To capture even more general workloads, we have a ﬁfth custom building block allowing the user to express arbitrary predicates on a single attribute, e.g., to build counting queries for diﬀerent age groups like <code>{0−17, 18−65, 66−115}</code>, The system uses C (<em>Customize</em>) to represent the user deﬁned predicate sets. Such customization, along with the predeﬁned predicates, allows the ﬂexibility to describe a wide variety of query workloads.</p>
+<h3 id="supporting-research">Supporting publications</h3>
+<div class="container">
+<h4 id="ektelo">Ektelo</h4>
+<p>Ektelo is a programming framework that supports the implementation of provably private programs. It oﬀers a clean separation between privacy-critical code and other supporting methods, encourages reuse of common subroutines across algorithm implementations, and is expressive enough to capture a wide range of recent privacy algorithms. Ektelo is open-source and we use it both as a reliable backend for the implementation of PSynDB as well as to allow users to move the privacy code to their data after setup has been done using the PSynDB web interface.</p>
+<h4 id="hdmm">HDMM</h4>
+<p>The high-dimensional matrix mechanism (HDMM) is a diﬀerentially private mechanism for releasing answers to a workload of predicate counting queries, inspired by the matrix mechanism. Predicate counting queries have the form <code>SELECT Count(*) FROM R WHERE φ</code>, where <code>φ</code> is any boolean formula over the attributes in R. Workloads of such queries are quite versatile, expressing histograms, multidimensional range queries, data cubes, marginals, or arbitrary combinations thereof.</p>
+<p>HDMM works by compiling the workload queries into a more privacy-eﬃcient form, called the strategy queries. The strategy queries are privately answered using the standard Laplace Mechanism [6], and then an inference step is performed to resolve inconsistencies in the noisy measurements. This inference step outputs a vector representation of the estimated database that approximates the true data with respect to the strategy (and workload) queries.</p>
+<h4 id="graphical-models-inference">Graphical models inference</h4>
+<p>The goal of HDMM and related approaches is to return answers to the workload queries. To generate synthetic data, we therefore have to extend HDMM. We do that by using a recently developed technique based on graphical models. The input to this algorithm is a collection of noisy measurements (i.e., those taken by HDMM), and the output is a graphical model that approximates the data distribution with respect to those measurements. Synthetic data can be eﬃciently obtained by sampling from the graphical model. We note that combining HDMM with graphical models has been demonstrated to boost the accuracy of the mechanism on the workload.</p>
+</div>
+</div>
+</div>
+{% endblock %}

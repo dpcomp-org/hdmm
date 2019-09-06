@@ -1,0 +1,194 @@
+{% extends "baseline.html" %}
+
+{% block content %}
+<meta id="productionIP" data-ip="{{prod_ip}}">
+
+<div class="row row-cards">
+	<div class="col-lg-12">
+		<div class="card" id="initialCard">
+      <div class="card-header">
+        <h4 class="card-title">Table schema <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i></h4>
+        <div class="card-options">
+          <a href="#" class="card-options-collapse" data-toggle="card-collapse"><i class="fa fa-chevron-up"></i></a>
+        </div>
+      </div>
+		  <div class="card-body">
+		    <p class="card-text">Please specify schema and domain definitions. You can choose to upload a small sample data (csv file) or input them manually.</p>
+			<input accept=".csv,.txt" class="form-control" id="fileSelection" type=file name=file style="display: none;">
+		    <a href="#" class="btn btn-primary btn-sm ml-auto" id="uploadBtn">Upload sample (csv)</a>
+		    <a href="#" class="btn btn-primary btn-sm ml-auto" id="inputBtn">Input manually</a>
+		    <a href="#" class="btn btn-primary btn-sm ml-auto" id="exampleBtn">Try demo (Adult dataset)</a>
+			<div id="alertMessage" style="padding-top:20px;">
+			</div>
+		  </div>
+		</div>
+	</div>
+	<div class="col-lg-12">
+		<div class="card" id="domainCard" style="display: none;">
+			<div class="card-header">
+				<h4 class="card-title">Attribute domains <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i></h4>
+				<div class="card-options">
+					<a href="#" class="card-options-collapse" data-toggle="collapse" data-target="#domainBodyWrap"><i class="fa fa-circle-notch"></i></a>
+				</div>
+			</div>
+			<div id="domainBodyWrap" class="collapse show">
+				<div class="card-body">
+					<h5 class="card-title">Data domain: define schema and attribute domains</h5>
+					<p class="card-text">Please follow steps below to choose (input) the attribute domains for workloads.</p>
+					<div class="table-responsive" id="domainUpload">
+						<table class="table card-table table-vcenter" id="domainTable">
+						</table>
+					</div>
+					<div id="domainInput">
+					</div>
+				</div>
+			</div>
+			<div class="card-footer">
+				<label for="selectedDomains">Selected Domains</label>
+				<form id=domainSubmit>
+					<p style="font-style:italic;text-align: center;"> 0 domain selected.</p>
+				</form>
+			</div>
+		</div>
+		{% include 'modal.html' %}
+	</div>
+
+	<div class="col-lg-12">
+		<div class="card" id="workloadCard" style="display: none;">
+			<div class="card-header">
+				<h4 class="card-title">Workload builder <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i> <a href="#" id="domainMetaButton"><i class="fas fa-info-circle"></i></a> <a href="#" id="backToWorkloadType" style="display: none;"><i class="fas fa-arrow-circle-left"></i></a></h4>
+				<div class="card-options">
+					<a href="#" class="card-options-collapse" data-toggle="collapse" data-target="#workloadBodyWrap"><i class="fa fa-circle-notch"></i></a>
+				</div>
+			</div>
+			<div id="workloadBodyWrap" class="collapse show">
+				<div id="chooseWorkload" class="card-body">
+					<div style="text-align: center;">
+						<button id="typeGeneralWorkload" type="button" class="btn btn-primary btn-lg" style="margin-right: 20px;">General workload</button>
+						<button id="typeMarginalWorkload" type="button" class="btn btn-success btn-lg">Marginal workload</button>
+					</div>
+				</div>
+				<div id="generalWorkload" class="card-body" style="display: none;">
+					<h5 class="card-title">Create workloads: buildingblock based workload generator. </h5>
+					<p class="card-text">Create workload by cross-product of prediate sets. See here for more help.</p>
+					<div id="buildingBlocks">
+					</div>
+					<div id="workloadButtons" style="margin-top: 15px;">
+						<form id="workloadAddButton">
+						  <div class="form-row">
+						  	<div class="col-3">
+						        <a href="#a" id="addBuildingBlock"><i class="fas fa-plus-circle" style="font-size:20px; color:#67a047;"></i></a>
+						       	<a href="#a" id="removeBuildingBlock" style="display: none;"><i class="fas fa-minus-circle" style="font-size:20px; color:#dc3545;"></i></a>
+						    </div>
+						    <div class="col-9 d-flex">
+						        <button id="addWorkload" type="button" class="btn btn-primary btn-sm ml-auto">Add Workload</button>
+						    </div>
+						  </div>
+						</form>
+					</div>
+				</div>
+				<div id="marginalWorkload" class="card-body" style="display: none;">
+					<h5 class="card-title">Create workloads: maringals workload generator. </h5>
+					<p class="card-text">Create marginals by choosing domains. See here for more help.</p>
+					<div id="marginalBlocks">
+					</div>
+					<div id="workloadButtons" style="margin-top: 15px;">
+						<form id="workloadAddButton">
+						  <div class="form-row">
+						    <div class="col-12 d-flex">
+						        <button id="addMarginls" type="button" class="btn btn-primary btn-sm ml-auto">Add Marginls</button>
+						    </div>
+						  </div>
+						</form>
+					</div>
+				</div>
+			</div>
+			<div class="card-footer">
+				<label for="selectedWorkload">Selected Workload</label>
+				<form id=workloadSubmit>
+					<p style="font-style:italic;text-align: center;"> 0 workload created.</p>
+				</form>
+				<form id="workloadSubmitButton" style="display: None">
+				  <div class="form-row">
+				    <div class="col-12 d-flex">
+				        <button id="submitWorkload" type="button" class="btn btn-primary btn-sm ml-auto">Submit Workload</button>
+				    </div>
+				  </div>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-12">
+		<div class="card" id="summaryCard" style="display: none;">
+			<div class="card-header">
+				<h4 class="card-title">Error summary <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i></h4>
+				<div class="card-options">
+					<div class="form-inline align-self-end" id="epsRow" style="height: 40px;">
+					  <label for="epsilon" class="col col-form-label" style="text-align: right;">Privacy Budget (epsilon)</label>
+				      <div class="form-group">
+				        <input type="number" id="epsilon" class="form-control" value="1.0" min="1.0" step="0.1"/>
+				      </div>
+					  <button style="margin-left: 10px;" id="espRefresh" type="button" class="btn btn-primary">Refresh</button>
+					</div>
+					<a href="#" class="card-options-collapse" data-toggle="card-collapse"><i class="fa fa-chevron-up"></i></a>
+				</div>
+			</div>
+			<div class="card-body">
+				<div class="progress" id='hdmmProgress' style="display: none;">
+  					<div class="progress-bar progress-bar-striped progress-bar-animated active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%;"></div>
+				</div>
+				<div id="alertMessage" style="padding-top:10px;">
+		    	</div>
+				<div class="table-responsive" id="hdmmTable" align="center"></div>
+				<div class="table-responsive" id="summaryTable" align="center"></div>
+
+				<div align="center" style="padding-top: 10px;">
+					<div id="wlpdfChart" style="height: 40vh; width:70%; display:none;" align="center"></div>
+				</div>
+				<div align="center" style="padding-top: 60px;">
+					<div id="pdfChart" style="height: 40vh; width:70%; display:none;" align="center"></div>
+				</div>
+				<div align="center" style="padding-top: 60px; padding-bottom: 20px">
+					<div id="cdfChart" style="height: 40vh; width:70%; display:none;" align="center"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="col-lg-12">
+		<div class="card" id="exportCard" style="display: none;">
+			<div class="card-header">
+				<h4 class="card-title">Synthetic data <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i></h4>
+				<div class="card-options">
+					<a href="#" class="card-options-collapse" data-toggle="card-collapse"><i class="fa fa-chevron-up"></i></a>
+				</div>
+			</div>
+			<div class="card-body">
+				<h5 class="card-title">Export synthetic data generated from HDMM strategy.</h5>
+                <a href="#" class="btn btn-secondary btn-sm ml-auto" id="exportMetaBtn">Export Synthetic Data</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="col-lg-12">
+		<div class="card" id="codeCard" style="display: none;">
+			<div class="card-header">
+				<h4 class="card-title">Ektelo code <i id="cardStatus" class="fa fa-cog" aria-hidden="true"></i></h4>
+				<div class="card-options">
+					<a href="#" class="card-options-collapse" data-toggle="card-collapse"><i class="fa fa-chevron-up"></i></a>
+				</div>
+			</div>
+			<div class="card-body">
+				<h5 class="card-title">Download configuration, workload, strategy, and Ektelo plan in order to run locally.</h5>
+                <a href="#" class="btn btn-secondary btn-sm ml-auto" id="codeBtn">Download Ektelo Code</a>
+                <br>
+                <br>
+                <p>An example of how to use the Ektelo code can be found <a href="{{url_for('local_mode')}}">here</a>.</p>
+			</div>
+		</div>
+	</div>
+
+</div>
+<script src="{{url_for('static', filename='js/core.js')}}" type="module"></script>
+
+{% endblock %}

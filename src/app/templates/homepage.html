@@ -1,0 +1,47 @@
+{% extends "baseline.html" %}
+
+{% block content %}
+<div class="jumbotron" style="position: relative; padding-top: 3rem; padding-bottom: 3rem;">
+  <h1>PSynDB</h1>
+  <p>PSynDB is a web-based tool for generating differitially private synthetic data.</p>
+  <h5 style="bottom: 5px; width: 92%; position: absolute; text-align: right;">Version 1.0</h5>
+</div>
+<div class="container">
+<h3 id="overview-block">Overview</h3>
+<p>PSynDB allows novice users to synthesize a diﬀerentially private table from an input table. To get started immediately, click the “Data Generation” link along the top banner. You will be guided through the following workflow:</p>
+</div>
+<div class="container" align="center">
+	<img src="{{url_for('static', filename='static/workflow.jpeg')}}", width="900", height="675">
+<!-- 	<div class="row">
+		<div class="col">
+	      1 of 2
+	    </div>
+		<div class="col-10">
+			<table class="table table-bordered">
+				<col width="30%">
+		  		<col width="70%">
+			    <tr>
+			      <td><strong style="font-size: 20px">Define schema</strong></td>
+			      <td>Define the schema of the input table, either by manual entry or by uploading a small sample of data.</td>
+			    </tr>
+			   	<tr>
+			      <td><strong style="font-size: 20px">Define attribute domains</strong></td>
+			      <td>Define each attribute domain.</td>
+			    </tr>
+			   	<tr>
+			      <td><strong style="font-size: 20px">Define workload</strong></td>
+			      <td>Define a workload, which is a set of queries of interest to the user. The synthetic data will be optimized for accuracy on queries in the workload.</td>
+			    </tr>
+			   	<tr>
+			      <td><strong style="font-size: 20px">Error optimization</strong></td>
+			      <td>The schema, attribute domains, and workload information are submitted to the back-end processing module for error optimization.</td>
+			    </tr>
+			   	<tr>
+			      <td><strong style="font-size: 20px">Error visualization</strong></td>
+			      <td>Visualizations of expected error on the workload are displayed. Refine the workload and re-optimize, if desired.</td>
+			    </tr>
+			</table>
+		</div>
+	</div> -->
+</div>
+{% endblock %}

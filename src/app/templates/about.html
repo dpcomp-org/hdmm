@@ -1,0 +1,91 @@
+{% extends "baseline.html" %}
+
+{% block content %}
+<div class="container">
+	<div class="row">
+		<h3 id="about-block">About</h3>
+	</div>
+</div>
+<div class="container">
+	<div class="row">
+		<p>The PSynDB data generator was designed and built by:</p>
+		<div class="container">
+			<ul>
+			<li>Zhiqi Huang, UMass Amherst</li>
+			<li><a href="https://people.cs.umass.edu/~rmckenna/">Ryan McKenna</a>, UMass Amherst</li>
+			<li><a href="https://people.cs.umass.edu/~gbiss/">George Bissias</a>, UMass Amherst</li>
+			<li><a href="https://people.cs.umass.edu/~miklau/index.html">Gerome Miklau</a>, UMass Amherst</li>
+			<li><a href="https://cs.colgate.edu/~mhay/">Michael Hay</a>, Colgate University</li>
+			<li><a href="https://users.cs.duke.edu/~ashwin/">Ashwin Machanavajjhala</a>, Duke University</li>
+			</ul>
+		</div>
+		<p>This website is the basis of a demonstration presented at <a href="https://vldb.org/2019/?program-schedule-demonstrations" target="_blank">VLDB 2019</a>. There is a <a href="https://people.cs.umass.edu/~miklau/assets/pubs/dp/huang19psyndata-demo.pdf" target="_blank">short paper</a> describing the demo and a <a href="https://people.cs.umass.edu/~rmckenna/vldb_demo_poster.pdf" target="_blank">poster</a> accompanying the demo.</p>
+		<p>PSynDB relies on the following recent privacy technologies:</p>
+		<div class="container">
+			<ul>
+			<li>
+			<p>The program that generates synthetic data runs on <a href="https://github.com/ektelo/ektelo" target="_blank">Ektelo</a>, a programming framework for diﬀerentially private algorithms:</p>
+			</li>
+			<div style="margin-left: 40px;">
+				<p><a href="https://people.cs.umass.edu/~miklau/assets/pubs/dp/zhang18ektelo.pdf" target="_blank">Ektelo: A Framework for Defining Differentially-Private Computations<br>
+				</a>Dan Zhang, Ryan McKenna, Ios Kotsogiannis, Michael Hay, Ashwin Machanavajjhala, Gerome Miklau<br>
+				Conference on Management of Data (SIGMOD) 2018</p>
+			</div>
+			<li>
+			<p>The High-Dimensional Matrix Mechanism (HDMM) is used to adapt to the workload specified by the user:</p>
+			</li>
+			<div style="margin-left: 40px;">
+				<p><a href="https://people.cs.umass.edu/~miklau/assets/pubs/dp/mckenna18hdmm.pdf" target="_blank">Optimizing Error of High-Dimensional Statistical Queries Under Differential Privacy<br>
+				</a>Ryan McKenna, Gerome Miklau, Michael Hay, Ashwin Machanavajjhala<br>
+				Proceedings of the VLDB (PVLDB) 2018</p>
+			</div>
+			<li>
+			<p>Lastly, graphical-model based estimation is used to enforce consistency, combine the noisy measurements, and sample synthetic tuples:</p>
+			</li>
+			<div style="margin-left: 40px;">
+				<p><a href="https://people.cs.umass.edu/~miklau/assets/pubs/dp/mckenna19pgm.pdf" target="_blank">Graphical-model based estimation and inference for differential privacy<br>
+				</a>Ryan McKenna, Dan Sheldon, Gerome Miklau<br>
+				International Conference on Machine Learning (ICML) 2019</p>
+			</div>
+			</ul>
+		</div>
+	</div>
+</div>
+<div class="container">
+	<div class="row">
+		<h3 id="contact-block">Contact</h3>
+	</div>
+	<div class="row">
+		<p>We welcome contributions and feedback. Please contact us at <a href="mailto:team@dpcomp.org"> this address.</a></p>
+	</div>
+</div>
+<div class="container">
+	<div class="row">
+		<h3 id="contact-block">Acknowledgements</h3>
+		This project is supported by the NSF, DARPA, SPAWAR and University of Massachusetts College of Information and Computer Sciences.
+	</div>
+</div>
+<div class="container">
+      <div class="row">
+        <div class="col-sm-6">
+          <table class="table table-borderless">
+          <tbody><tr><td style="vertical-align: middle;"><a href="http://www.nsf.gov/" target="_blank">
+            <img src="{{url_for('static', filename='static/logo-nsf.png')}}" height="75" width="75">
+              </a></td>
+          <td style="vertical-align: middle;"><a href="http://www.darpa.mil/" target="_blank">
+            <img src="{{url_for('static', filename='static/logo-darpa.jpg')}}" height="50">
+          </a></td>
+          <td style="vertical-align: middle;"> <a href="https://cs.umass.edu/" target="_blank">
+            <img src="{{url_for('static', filename='static/logo-cics.png')}}" height="45">
+          </a></td>
+          <td style="vertical-align: middle;"> <a href="https://www.colgate.edu/academics/departments-programs/department-computer-science" target="_blank">
+            <img src="{{url_for('static', filename='static/logo-1.png')}}" height="45">
+          </a></td>
+          <td style="vertical-align: middle;"> <a href="https://www.cs.duke.edu/" target="_blank">
+            <img src="{{url_for('static', filename='static/logo-2.png')}}" height="45">
+          </a></td>
+      </tr></tbody></table>
+      </div>
+    </div>
+</div>
+{% endblock %}

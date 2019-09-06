@@ -1,0 +1,61 @@
+{% extends "baseline.html" %}
+
+{% block content %}
+<div class="jumbotron" style="position: relative;">
+  <h1>Generating sythetic data in local mode</h1>
+  <h6>If your source table is too sensitive to upload to our server, or it is very large, you can generate the source table by running locally with your own compute resources.</h6>
+</div>
+
+<div class="container">
+	<div class="row">
+		<h5>Before getting started, ensure that you have completed the following.</h5>
+	</div>
+
+	<div class="row">
+		<ul class="list-group list-group-flush">
+		  <li class="list-group-item">1. Work through the <a href="{{url_for('data_generation')}}">Data Generation</a> workflow and download the zip file: <var>ektelo_code.zip</var>.</li>
+		  <li class="list-group-item">2. Clone the <a href="https://github.com/ektelo/ektelo">Ektelo repository</a>, follow the setup instructions in README.md, and add it to your PYTHONPATH.</li>
+		  <li class="list-group-item">3. Clone the <a href="https://github.com/ryan112358/private-pgm">Private PGM repository</a>, follow the setup instructions README.md, and add it to you PYTHONPATH.</li>
+          <li class="list-group-item">4. Unpack <var>ektelo_code.zip</var> and enter the <var>ektelo_code</var> directory.</li>
+		</ul>
+	</div>
+
+	<div class="row">
+		<h5>Synthetic data can now be generated from the command line as follows.</h5>
+	</div>
+
+	<div class="row">
+		<div class="col-sm-12">
+		<pre style="text-align: left; white-space: pre-line;"><code class="bash">
+        python psyndb.py path_to_data.csv
+
+		</code></pre>
+		</div>
+	</div>
+
+	<div class="row">
+		<h5>Alternatively, it is also possible to generate synthetic data in a python session with the following commands.</h5>
+	</div>
+
+	<div class="row">
+		<div class="col-sm-12">
+		<pre style="text-align: left; white-space: pre-line;"><code class="python">
+		from psyndb import PSynDB
+		import pickle
+
+        # set file_path to the location of a csv file containing your data
+        eps = 0.1
+        seed = 0
+        with open('strategy.pickle', 'rb') as fd:
+        &nbsp; &nbsp; A = pickle.load(fd)
+        with open('config.pickle', 'rb') as fd:
+        &nbsp;  &nbsp; config = pickle.load(fd)
+        p_syn_db = PSynDB(config, A)
+        x_synth = p_syn_db.synthesize(file_path, eps, seed)
+
+		</code></pre>
+		</div>
+	</div>
+
+</div>
+{% endblock %}
