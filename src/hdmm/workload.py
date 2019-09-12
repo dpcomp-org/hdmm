@@ -482,8 +482,10 @@ class Disjuncts(Sum):
 class ExplicitGram:
     # not an Ektelo Matrix, but behaves like it in the sense that it has gram function,
     # meaning strategy optimization is possible
-    def __init__(self, matrix):
+    def __init__(self, matrix, queries=None):
         self.matrix = matrix
+        self.shape = (queries, matrix.shape[1])
+        self.dtype = matrix.dtype
     
     def gram(self):
         return EkteloMatrix(self.matrix)
