@@ -3,7 +3,7 @@ from hdmm.matrix import EkteloMatrix, VStack, Kronecker, Weighted
 from hdmm import workload
 
 def convert_implicit(A):
-    if isinstance(A, EkteloMatrix):
+    if isinstance(A, EkteloMatrix) or isinstance(A, workload.ExplicitGram):
         return A
     return EkteloMatrix(A)
 
@@ -65,6 +65,12 @@ def per_query_error_sampling(W, A, number=100000, eps=np.sqrt(2), normalize=Fals
     W, A = convert_implicit(W), convert_implicit(A)
     if isinstance(W, Weighted):
         ans = W.weight**2 * per_query_error_sampling(W.base, A, number)
+    #elif isinstance(W, VStack) and type(A) == VStack:
+    #    m = W.shape[0]
+    #    num = lambda Wi: int(number*Wi.shape[0]/m + 1)
+    #    samples = [per_query_error_sampling(Wi,Ai.base,num(Wi)) for Wi,Ai in zip(W.matrices,A.matrices)]
+    #    weights = [Ai.weight for Ai in A.matrices]
+    #    ans = np.concatenate([err/w**2 for w, err in zip(weights, samples)])
     elif isinstance(W, VStack):
         m = W.shape[0]
         num = lambda Wi: int(number*Wi.shape[0]/m + 1)
