@@ -1,4 +1,4 @@
-from hdmm import templates
+from ektelo import templates
 import autograd.numpy as np
 from autograd import grad
 from autograd.extend import primitive, defvjp

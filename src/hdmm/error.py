@@ -1,6 +1,6 @@
 import numpy as np
-from hdmm.matrix import EkteloMatrix, VStack, Kronecker, Weighted
-from hdmm import workload
+from ektelo.matrix import EkteloMatrix, VStack, Kronecker, Weighted
+from ektelo import workload
 
 def convert_implicit(A):
     if isinstance(A, EkteloMatrix) or isinstance(A, workload.ExplicitGram):

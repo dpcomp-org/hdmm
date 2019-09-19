@@ -1,5 +1,6 @@
 import numpy as np
-from hdmm import matrix, workload, templates
+from ektelo import matrix, workload
+from hdmm import templates
 import unittest
 from scipy.optimize import check_grad
 

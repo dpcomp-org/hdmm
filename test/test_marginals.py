@@ -1,5 +1,5 @@
 import numpy as np
-from hdmm.workload import Marginal, Marginals, MarginalsGram, DimKMarginals
+from ektelo.workload import Marginal, Marginals, MarginalsGram, DimKMarginals
 import unittest
 
 class TestMarginals(unittest.TestCase):

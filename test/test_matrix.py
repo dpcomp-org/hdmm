@@ -1,5 +1,5 @@
 import numpy as np
-from hdmm import matrix, workload
+from ektelo import matrix, workload
 import unittest
 
 class TestMatrix(unittest.TestCase):

@@ -1,4 +1,4 @@
-from hdmm import matrix, workload
+from ektelo import matrix, workload
 from functools import reduce
 import numpy as np
 from scipy import optimize

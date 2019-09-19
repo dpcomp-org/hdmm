@@ -17,7 +17,7 @@ sudo apt-get install python3-venv
 ## Environment
 ```bash
 export PRIV_HOME=$HOME/Documents/priv-publish
-export PRIV_DATA=$PRIV_HOME/data
+export PRIV_DATA=$PRIV_HOME/data/uploads
 export PYTHON_HOME=$HOME/Virtualenvs/PyPriv
 export PYTHONPATH=$PYTHONPATH:PRIV_HOME/app
 export PYTHONPATH=$PYTHONPATH:$HOME/Documents/hdmm

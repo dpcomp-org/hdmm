@@ -19,11 +19,10 @@ import pickle
 from psyndb import PSynDB
 from hdmm import templates
 from hdmm import error as hdmm_error
-from hdmm.matrix import EkteloMatrix, Identity, Kronecker, VStack, Weighted
-from hdmm.workload import AllRange, Prefix, Total, union_kron_canonical
+from ektelo.matrix import EkteloMatrix, Identity, Kronecker, VStack, Weighted
+from ektelo.workload import AllRange, Prefix, Total, union_kron_canonical
 import inspect
 from mbi import FactoredInference, Domain
-#from hdmm.workload import Identity, AllRange, Prefix, Matrix, Total, Kron, Concat
 from flask import Flask, Response, render_template, redirect, url_for, request, session, abort, flash
 from itertools import product
 import os
@@ -49,7 +48,7 @@ else:
 Priv Publish server
 """
 
-UPLOAD_FOLDER = 'data/uploads'
+UPLOAD_FOLDER = os.environ['PRIV_DATA']
 ALLOWED_EXTENSIONS = set(['txt', 'csv'])
 #DATA_HOME = os.environ['PRIV_DATA']
 
@@ -154,7 +153,7 @@ def code():
 @app.route("/api/upload", methods=['GET', 'POST'])
 def upload():
     if request.method == 'GET':
-        file_path = 'data/uploads/adult.csv'
+        file_path = os.path.join(UPLOAD_FOLDER, 'adult.csv')
     if request.method == 'POST':
         if 'file' not in request.files:
             return {'error':-1,'msg':'No file part in upload request.'}
@@ -163,10 +162,11 @@ def upload():
             return {'error':-1,'msg':'No file name.'}
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
             file.save(file_path)
 
     meta = pd_parser.meta(file_path, 0, ',')
+    print(file_path)
     if request.method == 'GET':
         reorder = json.loads(meta)
         adult_order = ['age', 'race', 'sex', 'workclass', 'capital-gain', 'education', 'hours-per-week', 'native-country', 'occupation', 'marital-status', 'income', 'relationship', 'capital-loss', 'fnlwgt']
@@ -315,11 +315,13 @@ def export_ektelo(W, A, config):
 
     strategy_file = os.path.join(code_dir, 'strategy.pickle')
     with open(strategy_file, 'wb') as fd:
-        pickle.dump(matrix_rewriter(union_kron_canonical(A)), fd)
+        #pickle.dump(matrix_rewriter(union_kron_canonical(A)), fd)
+        pickle.dump(union_kron_canonical(A), fd)
 
     workload_file = os.path.join(code_dir, 'workload.pickle')
     with open(workload_file, 'wb') as fd:
-        pickle.dump(matrix_rewriter(W), fd)
+        #pickle.dump(matrix_rewriter(W), fd)
+        pickle.dump(W, fd)
 
     code_file = os.path.join(code_dir, 'psyndb.py')
     shutil.copyfile(os.path.join(os.environ['PRIV_HOME'], 'psyndb.py'), code_file)

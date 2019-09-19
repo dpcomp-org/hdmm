@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import sparse, optimize
 from scipy.sparse.linalg import spsolve_triangular, aslinearoperator
-import workload
+from ektelo import workload
 import time
 import approximation
 import implicit
