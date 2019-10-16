@@ -1,5 +1,6 @@
 import numpy as np
-from ektelo import templates, workload
+from ektelo import workload
+from hdmm import templates
 
 def get_domain(W):
     if isinstance(W, workload.Kronecker):
