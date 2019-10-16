@@ -1,4 +1,4 @@
-from hdmm.workload import *
+from ektelo.workload import *
 import itertools
 # Predicates for defining SF1 tables (Universe Persons)
 

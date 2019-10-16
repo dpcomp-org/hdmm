@@ -1,5 +1,5 @@
+from ektelo import workload
 from hdmm.templates import DefaultKron, Marginals, DefaultUnionKron
-from hdmm import workload
 from mbi import FactoredInference, Domain, Dataset
 import numpy as np
 from IPython import embed

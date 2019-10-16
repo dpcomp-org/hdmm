@@ -1,4 +1,5 @@
-from hdmm import workload, templates
+from ektelo import workload
+from hdmm import templates
 import numpy as np
 
 # create a Kronecker product workload from dense matrix building blocks

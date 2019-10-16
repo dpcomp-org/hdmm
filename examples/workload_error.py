@@ -1,5 +1,5 @@
+from ektelo.workload import *
 import numpy as np
-from hdmm.workload import *
 from hdmm import templates, error
 from census_workloads import SF1_Persons
 

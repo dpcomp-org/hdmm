@@ -1,4 +1,5 @@
-from hdmm import workload, templates, error, mechanism
+from ektelo import workload
+from hdmm import templates, error, mechanism
 from census_workloads import SF1_Persons
 import numpy as np
 
