@@ -1,0 +1,4 @@
+python compute_strategies.py --dataset census --workload 1 --approx False
+python compute_strategies.py --dataset census --workload 1 --approx True
+python compute_strategies.py --dataset census --workload 2 --approx False
+python compute_strategies.py --dataset census --workload 2 --approx True
