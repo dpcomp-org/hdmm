@@ -143,6 +143,21 @@ class EkteloMatrix(LinearOperator):
         if sparse.issparse(self.matrix):
             return EkteloMatrix(self.matrix.power(2))
         return EkteloMatrix(self.matrix**2)
+
+    def l1_sensitivity(self):
+        return self.__abs__().sum(axis=0).max()
+
+    def l2_sensitivity(self):
+        return np.sqrt(self.__sqr__().sum(axis=0).max())
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    def __hash__(self):
+        return hash(repr(self))
    
 class Identity(EkteloMatrix):
     def __init__(self, n, dtype=np.float64):
