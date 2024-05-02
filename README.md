@@ -33,6 +33,14 @@ This is a relatively small workload.  HDMM really shines when running on larger 
 
 # Setup
 
+## Automatic Setup
+
+``` bash
+pip install git+https://github.com/dpcomp-org/hdmm.git
+```
+
+## Manual Setup
+
 Setup instructions are for an Ubuntu system.  First clone the repository, and add it to your PYTHONPATH by adding the following line to your .bashrc file:
 
 ```bash

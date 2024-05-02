@@ -1,0 +1,22 @@
+[build-system]
+
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hdmm"
+description = "HDMM: The High-Dimensional Matrix Mechanism"
+authors = [{name = "Tumult Labs, Inc."}]
+version = "0.1"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9,<=3.11.7"
+dependencies = [
+  "numpy>=1.16.2",
+  "scipy>=1.2.1",
+  "nose>=1.3.7",
+  "future>=0.17.1",
+  "autograd>=1.3"]
+
+[project.urls]
+Repository = "https://github.com/dpcomp-org/hdmm"
