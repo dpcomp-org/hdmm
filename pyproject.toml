@@ -7,10 +7,10 @@ build-backend = "setuptools.build_meta"
 name = "hdmm"
 description = "HDMM: The High-Dimensional Matrix Mechanism"
 authors = [{name = "Tumult Labs, Inc."}]
-version = "0.1"
+version = "0.2"
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.9,<=3.11.7"
+requires-python = ">=3.8,<=3.12.4"
 dependencies = [
   "numpy>=1.16.2",
   "scipy>=1.2.1",
